@@ -333,49 +333,116 @@ def format_number(value, decimals=2, suffix=''):
     else:
         return f"{value:.{decimals}f}{suffix}"
 
-def create_performance_heatmap(df, fund_names):
-    """Create a heatmap of returns across different time periods"""
-    periods = ['totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m', 
-               'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 'totalReturn_10y']
-    period_labels = ['1M', '3M', '6M', '1A', '3A', '5A', '10A']
+def create_configurable_heatmap(df, fund_names, metric_type='returns'):
+    """Create a configurable heatmap for different metrics"""
+    
+    # Define metric groups
+    metric_groups = {
+        'returns': {
+            'columns': ['totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m', 
+                       'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 'totalReturn_10y'],
+            'labels': ['1M', '3M', '6M', '1A', '3A', '5A', '10A'],
+            'title': 'Retornos por Período',
+            'suffix': '%',
+            'colorbar_title': 'Retorno (%)'
+        },
+        'risk': {
+            'columns': ['standardDeviation_1yMonthly', 'standardDeviation_3yMonthly', 'standardDeviation_5yMonthly',
+                       'beta_1yMonthly', 'beta_3yMonthly', 'beta_5yMonthly'],
+            'labels': ['Vol 1A', 'Vol 3A', 'Vol 5A', 'Beta 1A', 'Beta 3A', 'Beta 5A'],
+            'title': 'Métricas de Riesgo',
+            'suffix': '',
+            'colorbar_title': 'Valor'
+        },
+        'risk_adjusted': {
+            'columns': ['sharpeRatio_1yMonthly', 'sharpeRatio_3yMonthly', 'sharpeRatio_5yMonthly',
+                       'alpha_1yMonthly', 'alpha_3yMonthly', 'alpha_5yMonthly'],
+            'labels': ['Sharpe 1A', 'Sharpe 3A', 'Sharpe 5A', 'Alpha 1A', 'Alpha 3A', 'Alpha 5A'],
+            'title': 'Rendimiento Ajustado al Riesgo',
+            'suffix': '',
+            'colorbar_title': 'Valor'
+        },
+        'ratings': {
+            'columns': ['fundStarRating_overall', 'fundStarRating_3y', 'fundStarRating_5y',
+                       'sustainabilityRating', 'morningstarRiskRating_overall'],
+            'labels': ['⭐ General', '⭐ 3A', '⭐ 5A', '🌱 ESG', 'Riesgo'],
+            'title': 'Calificaciones',
+            'suffix': '',
+            'colorbar_title': 'Rating'
+        },
+        'costs': {
+            'columns': ['ongoingCharge', 'maximumEntryCost', 'maximumExitCost'],
+            'labels': ['Gastos Corrientes', 'Com. Entrada', 'Com. Salida'],
+            'title': 'Estructura de Costes',
+            'suffix': '%',
+            'colorbar_title': 'Coste (%)'
+        }
+    }
+    
+    metric_config = metric_groups.get(metric_type, metric_groups['returns'])
     
     matrix = []
     fund_labels = []
     
     for fund_name in fund_names[:10]:
         fund_data = df[df['name'] == fund_name].iloc[0]
-        returns = [fund_data.get(p, np.nan) for p in periods]
-        matrix.append(returns)
+        values = [fund_data.get(col, np.nan) for col in metric_config['columns']]
+        matrix.append(values)
         fund_labels.append(fund_name[:30] + '...' if len(fund_name) > 30 else fund_name)
     
-    fig = go.Figure(data=go.Heatmap(
-        z=matrix,
-        x=period_labels,
-        y=fund_labels,
-        colorscale=[
+    # Adjust colorscale based on metric type
+    if metric_type == 'costs':
+        colorscale = [
+            [0.0, '#10b981'],
+            [0.25, '#84cc16'],
+            [0.5, '#fbbf24'],
+            [0.75, '#f59e0b'],
+            [1.0, '#ef4444']
+        ]  # Inverted for costs (lower is better)
+    else:
+        colorscale = [
             [0.0, '#ef4444'],
             [0.25, '#f59e0b'],
             [0.5, '#fbbf24'],
             [0.75, '#84cc16'],
             [1.0, '#10b981']
-        ],
-        text=[[f"{val:.1f}%" if not pd.isna(val) else "N/D" for val in row] for row in matrix],
+        ]
+    
+    # Format text for display
+    text_matrix = []
+    for row in matrix:
+        text_row = []
+        for val in row:
+            if pd.isna(val):
+                text_row.append("N/D")
+            elif metric_config['suffix']:
+                text_row.append(f"{val:.1f}{metric_config['suffix']}")
+            else:
+                text_row.append(f"{val:.2f}")
+        text_matrix.append(text_row)
+    
+    fig = go.Figure(data=go.Heatmap(
+        z=matrix,
+        x=metric_config['labels'],
+        y=fund_labels,
+        colorscale=colorscale,
+        text=text_matrix,
         texttemplate="%{text}",
         textfont={"size": 10},
         colorbar=dict(
-            title="Retorno (%)",
+            title=metric_config['colorbar_title'],
             thickness=15,
             len=0.7
         )
     ))
     
     fig.update_layout(
-        title="Mapa de Calor - Retornos por Período",
+        title=f"Mapa de Calor - {metric_config['title']}",
         paper_bgcolor='#0e1117',
         plot_bgcolor='#1a1f2e',
         font=dict(color='#fafafa'),
         height=400,
-        xaxis=dict(title="Período", side="bottom"),
+        xaxis=dict(title="Métrica", side="bottom"),
         yaxis=dict(title="Fondo", autorange="reversed")
     )
     
@@ -710,23 +777,62 @@ def main():
         sort_cols = st.columns([3, 2, 2])
         
         with sort_cols[0]:
-            # Get available columns for sorting
+            # Get available columns for sorting with friendly names
             available_columns = filtered_df.columns.tolist()
             
-            # Prioritize common sorting columns
-            priority_cols = ['totalReturn_1y', 'totalReturn_3y', 'sharpeRatio_3yMonthly', 
-                           'fundSize', 'ongoingCharge', 'fundStarRating_overall']
-            available_priority = [col for col in priority_cols if col in available_columns]
-            other_cols = [col for col in available_columns if col not in priority_cols]
+            # Create friendly name mapping for sorting
+            sort_translations = {}
+            for category, cols in COLUMN_DEFINITIONS.items():
+                for col_key, col_name in cols.items():
+                    if col_key in available_columns:
+                        sort_translations[col_name] = col_key
             
-            sort_options = available_priority + other_cols
+            # Prioritize common sorting options
+            priority_options = [
+                '📈 Retorno 1 Año', '📊 Retorno 3 Años', '🎯 Sharpe 3A',
+                '💼 Patrimonio (AUM)', '💰 Gastos Corrientes', '⭐ Rating General',
+                '🌱 ESG Rating', '📉 Volatilidad 3A', '🔥 Alpha 3A'
+            ]
             
-            sort_by = st.selectbox(
+            # Map priority options to actual columns
+            priority_mapping = {
+                '📈 Retorno 1 Año': 'totalReturn_1y',
+                '📊 Retorno 3 Años': 'totalReturn_3y',
+                '🎯 Sharpe 3A': 'sharpeRatio_3yMonthly',
+                '💼 Patrimonio (AUM)': 'fundSize',
+                '💰 Gastos Corrientes': 'ongoingCharge',
+                '⭐ Rating General': 'fundStarRating_overall',
+                '🌱 ESG Rating': 'sustainabilityRating',
+                '📉 Volatilidad 3A': 'standardDeviation_3yMonthly',
+                '🔥 Alpha 3A': 'alpha_3yMonthly'
+            }
+            
+            # Build available sort options
+            available_priority = [opt for opt in priority_options if priority_mapping.get(opt) in available_columns]
+            
+            # Add other columns with friendly names
+            other_options = []
+            for name, col in sort_translations.items():
+                display_name = name
+                if col not in priority_mapping.values():
+                    other_options.append((display_name, col))
+            
+            # Combine all options
+            all_sort_options = available_priority + [opt[0] for opt in other_options]
+            
+            selected_sort = st.selectbox(
                 "🔽 Ordenar por",
-                options=sort_options,
-                index=0 if sort_options else None,
+                options=all_sort_options,
+                index=0 if all_sort_options else None,
                 help="Selecciona la columna para ordenar"
             )
+            
+            # Get actual column name for sorting
+            if selected_sort:
+                if selected_sort in priority_mapping:
+                    sort_by = priority_mapping[selected_sort]
+                else:
+                    sort_by = sort_translations.get(selected_sort, selected_sort)
         
         with sort_cols[1]:
             sort_order = st.radio(
@@ -889,81 +995,171 @@ def main():
             if selected_funds:
                 comparison_df = filtered_df[filtered_df['name'].isin(selected_funds)]
                 
-                # Heatmap of returns
-                st.markdown("#### 🔥 **Mapa de Calor - Rendimientos Históricos**")
-                fig = create_performance_heatmap(filtered_df, selected_funds)
-                st.plotly_chart(fig, use_container_width=True)
+                # Configurable heatmap
+                st.markdown("#### 🔥 **Mapa de Calor Configurable**")
                 
-                # Comparison table
-                st.markdown("#### 📊 **Tabla Comparativa Detallada**")
+                heatmap_col1, heatmap_col2 = st.columns([1, 3])
                 
-                # Select metrics to compare
-                categories_to_compare = st.multiselect(
-                    "Selecciona categorías de métricas para comparar",
-                    options=list(COLUMN_DEFINITIONS.keys()),
-                    default=['Retornos', 'Riesgo Ajustado', 'Costes', 'Ratings']
+                with heatmap_col1:
+                    heatmap_type = st.selectbox(
+                        "📊 Tipo de Métrica",
+                        options=[
+                            ('📈 Retornos', 'returns'),
+                            ('📉 Riesgo', 'risk'),
+                            ('🎯 Riesgo Ajustado', 'risk_adjusted'),
+                            ('⭐ Calificaciones', 'ratings'),
+                            ('💰 Costes', 'costs')
+                        ],
+                        format_func=lambda x: x[0],
+                        help="Selecciona qué métricas mostrar en el mapa de calor"
+                    )
+                
+                with heatmap_col2:
+                    fig = create_configurable_heatmap(filtered_df, selected_funds, heatmap_type[1])
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                # Enhanced comparison table with individual metric selection
+                st.markdown("---")
+                st.markdown("#### 📊 **Tabla Comparativa Personalizada**")
+                
+                # Create list of all available metrics with friendly names
+                all_metrics = []
+                metric_mapping = {}
+                
+                for category, cols in COLUMN_DEFINITIONS.items():
+                    for col_key, col_name in cols.items():
+                        if col_key in comparison_df.columns and col_key != 'name':
+                            display_name = f"{category} - {col_name}"
+                            all_metrics.append(display_name)
+                            metric_mapping[display_name] = col_key
+                
+                # Default selection
+                default_metrics = [
+                    'Retornos - 1 Año %',
+                    'Retornos - 3 Años %',
+                    'Riesgo Ajustado - Sharpe 3A',
+                    'Riesgo - Vol 3A %',
+                    'Costes - Gastos %',
+                    'Ratings - ⭐ Rating'
+                ]
+                
+                available_defaults = [m for m in default_metrics if m in all_metrics]
+                
+                selected_metrics = st.multiselect(
+                    "Selecciona métricas específicas para comparar (máximo 20)",
+                    options=all_metrics,
+                    default=available_defaults[:10] if available_defaults else all_metrics[:10],
+                    max_selections=20,
+                    help="Elige hasta 20 métricas para la tabla comparativa"
                 )
                 
-                # Build comparison metrics
-                comparison_metrics = ['name']
-                for cat in categories_to_compare:
-                    comparison_metrics.extend([col for col in COLUMN_DEFINITIONS[cat].keys() 
-                                             if col in comparison_df.columns])
-                
-                if len(comparison_metrics) > 1:
-                    comp_display = comparison_df[comparison_metrics].set_index('name').T
+                if selected_metrics:
+                    # Build comparison dataframe with selected metrics
+                    comparison_metrics = ['name'] + [metric_mapping[m] for m in selected_metrics]
+                    comp_display = comparison_df[comparison_metrics].copy()
                     
-                    # Apply translations
+                    # Format values for display
+                    for col in comp_display.columns:
+                        if col == 'name':
+                            continue
+                        elif col == 'fundSize':
+                            comp_display[col] = comp_display[col].apply(lambda x: format_number(x, 1, '€'))
+                        elif 'totalReturn' in col or 'return' in col.lower():
+                            comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
+                        elif 'ongoingCharge' in col or 'maximum' in col.lower():
+                            comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
+                        elif any(metric in col.lower() for metric in ['sharpe', 'alpha', 'beta', 'standard']):
+                            comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/D")
+                        elif col in ['isIndexFund', 'hasPerformanceFee']:
+                            comp_display[col] = comp_display[col].apply(lambda x: '✓' if x else '✗' if not pd.isna(x) else "N/D")
+                        elif 'Rating' in col or 'rating' in col:
+                            comp_display[col] = comp_display[col].apply(lambda x: f"{x:.0f}" if not pd.isna(x) else "N/D")
+                    
+                    # Transpose for comparison view
+                    comp_display = comp_display.set_index('name').T
+                    
+                    # Apply friendly names to index
                     index_translations = {}
-                    for category, cols in COLUMN_DEFINITIONS.items():
-                        index_translations.update(cols)
+                    for metric_name, col_key in metric_mapping.items():
+                        if col_key in comp_display.index:
+                            index_translations[col_key] = metric_name.split(' - ')[1]
                     
                     comp_display.index = comp_display.index.map(lambda x: index_translations.get(x, x))
                     
-                    st.dataframe(comp_display, use_container_width=True, height=400)
+                    # Display with styling
+                    st.dataframe(
+                        comp_display,
+                        use_container_width=True,
+                        height=min(400, 50 + len(comp_display) * 35)
+                    )
+                    
+                    # Export comparison button
+                    csv = comp_display.to_csv()
+                    st.download_button(
+                        label="📥 Descargar Comparación CSV",
+                        data=csv,
+                        file_name=f"comparacion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
                 
                 # Scatter plot configuration
                 st.markdown("---")
                 st.markdown("#### 📈 **Análisis Visual Personalizado**")
                 
-                # Get numeric columns for scatter plot
+                # Get numeric columns for scatter plot with friendly names
                 numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+                
+                # Create friendly names for scatter plot axes
+                scatter_options = {}
+                for col in numeric_cols:
+                    for category, cols in COLUMN_DEFINITIONS.items():
+                        if col in cols:
+                            scatter_options[f"{cols[col]} ({category})"] = col
+                            break
+                    else:
+                        scatter_options[col] = col
                 
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
-                    x_axis = st.selectbox(
+                    x_axis_display = st.selectbox(
                         "📊 Eje X (Horizontal)",
-                        options=numeric_cols,
-                        index=numeric_cols.index('standardDeviation_3yMonthly') 
-                            if 'standardDeviation_3yMonthly' in numeric_cols else 0,
+                        options=list(scatter_options.keys()),
+                        index=list(scatter_options.values()).index('standardDeviation_3yMonthly') 
+                            if 'standardDeviation_3yMonthly' in scatter_options.values() else 0,
                         help="Variable para el eje horizontal"
                     )
+                    x_axis = scatter_options[x_axis_display]
                 
                 with col2:
-                    y_axis = st.selectbox(
+                    y_axis_display = st.selectbox(
                         "📈 Eje Y (Vertical)",
-                        options=numeric_cols,
-                        index=numeric_cols.index('totalReturn_3y') 
-                            if 'totalReturn_3y' in numeric_cols else 0,
+                        options=list(scatter_options.keys()),
+                        index=list(scatter_options.values()).index('totalReturn_3y') 
+                            if 'totalReturn_3y' in scatter_options.values() else 0,
                         help="Variable para el eje vertical"
                     )
+                    y_axis = scatter_options[y_axis_display]
                 
                 with col3:
-                    size_var = st.selectbox(
+                    size_options = {'Ninguno': None}
+                    size_options.update(scatter_options)
+                    
+                    size_var_display = st.selectbox(
                         "⭕ Tamaño de burbuja",
-                        options=['None'] + numeric_cols,
-                        index=numeric_cols.index('fundSize') + 1 
-                            if 'fundSize' in numeric_cols else 0,
+                        options=list(size_options.keys()),
+                        index=list(size_options.values()).index('fundSize') 
+                            if 'fundSize' in size_options.values() else 0,
                         help="Variable para determinar el tamaño"
                     )
+                    size_var = size_options[size_var_display]
                 
                 # Create scatter plot
                 if x_axis and y_axis:
                     scatter_data = filtered_df.dropna(subset=[x_axis, y_axis]).copy()
                     
                     # Handle size variable
-                    if size_var != 'None':
+                    if size_var:
                         scatter_data[size_var] = scatter_data[size_var].fillna(scatter_data[size_var].median())
                         size_col = size_var
                     else:
@@ -976,7 +1172,7 @@ def main():
                         color='fund_type',
                         size=size_col if size_col else None,
                         hover_data=['name', 'firmName', 'morningstarCategory'],
-                        title=f"Análisis: {y_axis} vs {x_axis}",
+                        title=f"Análisis: {y_axis_display} vs {x_axis_display}",
                         color_discrete_map={
                             'Renta Variable': '#3b82f6',
                             'Renta Fija': '#10b981',
@@ -991,6 +1187,20 @@ def main():
                     
                     fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5)
                     fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5)
+                    
+                    # Add quadrant labels
+                    fig.add_annotation(x=scatter_data[x_axis].max(), y=scatter_data[y_axis].max(),
+                                     text="Alto/Alto", showarrow=False,
+                                     xanchor="right", yanchor="top", opacity=0.3)
+                    fig.add_annotation(x=scatter_data[x_axis].min(), y=scatter_data[y_axis].max(),
+                                     text="Bajo/Alto", showarrow=False,
+                                     xanchor="left", yanchor="top", opacity=0.3)
+                    fig.add_annotation(x=scatter_data[x_axis].max(), y=scatter_data[y_axis].min(),
+                                     text="Alto/Bajo", showarrow=False,
+                                     xanchor="right", yanchor="bottom", opacity=0.3)
+                    fig.add_annotation(x=scatter_data[x_axis].min(), y=scatter_data[y_axis].min(),
+                                     text="Bajo/Bajo", showarrow=False,
+                                     xanchor="left", yanchor="bottom", opacity=0.3)
                     
                     # Highlight selected funds
                     if selected_funds:
@@ -1016,8 +1226,8 @@ def main():
                         plot_bgcolor='#1a1f2e',
                         font=dict(color='#fafafa'),
                         height=600,
-                        xaxis=dict(gridcolor='#2d3748', zeroline=False),
-                        yaxis=dict(gridcolor='#2d3748', zeroline=False)
+                        xaxis=dict(gridcolor='#2d3748', zeroline=False, title=x_axis_display),
+                        yaxis=dict(gridcolor='#2d3748', zeroline=False, title=y_axis_display)
                     )
                     
                     st.plotly_chart(fig, use_container_width=True)
