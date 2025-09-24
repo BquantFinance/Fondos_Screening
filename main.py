@@ -298,6 +298,95 @@ COLUMN_DEFINITIONS = {
     }
 }
 
+# Create a flat dictionary for all column translations
+ALL_COLUMN_TRANSLATIONS = {}
+for category, columns in COLUMN_DEFINITIONS.items():
+    ALL_COLUMN_TRANSLATIONS.update(columns)
+
+# Add additional translations for columns not in the main definitions
+ADDITIONAL_TRANSLATIONS = {
+    # Retornos adicionales
+    'totalReturn_1d': 'Retorno 1 Día %',
+    'totalReturn_1w': 'Retorno 1 Semana %',
+    'totalReturn_2m': 'Retorno 2 Meses %',
+    'totalReturn_2y': 'Retorno 2 Años %',
+    'totalReturn_4y': 'Retorno 4 Años %',
+    'totalReturn_6y': 'Retorno 6 Años %',
+    'totalReturn_7y': 'Retorno 7 Años %',
+    'totalReturn_8y': 'Retorno 8 Años %',
+    'totalReturn_9y': 'Retorno 9 Años %',
+    'totalReturn_15y': 'Retorno 15 Años %',
+    'totalReturn_20y': 'Retorno 20 Años %',
+    'totalReturn_qtd': 'Retorno Trimestre %',
+    
+    # Volatilidad adicional
+    'standardDeviation_10yMonthly': 'Volatilidad 10 Años %',
+    'standardDeviation_15yMonthly': 'Volatilidad 15 Años %',
+    'standardDeviation_20yMonthly': 'Volatilidad 20 Años %',
+    
+    # Sharpe adicional
+    'sharpeRatio_10yMonthly': 'Sharpe Ratio 10 Años',
+    'sharpeRatio_15yMonthly': 'Sharpe Ratio 15 Años',
+    'sharpeRatio_20yMonthly': 'Sharpe Ratio 20 Años',
+    
+    # Beta adicional
+    'beta_10yMonthly': 'Beta 10 Años',
+    'beta_15yMonthly': 'Beta 15 Años',
+    'beta_20yMonthly': 'Beta 20 Años',
+    
+    # Alpha adicional
+    'alpha_10yMonthly': 'Alpha 10 Años',
+    'alpha_15yMonthly': 'Alpha 15 Años',
+    'alpha_20yMonthly': 'Alpha 20 Años',
+    
+    # Información adicional
+    'informationRatio_3y': 'Info Ratio 3 Años',
+    'informationRatio_5y': 'Info Ratio 5 Años',
+    'rSquared_3yMonthly': 'R-Cuadrado 3 Años',
+    'rSquared_5yMonthly': 'R-Cuadrado 5 Años',
+    
+    # Gestión
+    'averageManagerTenure_fund': 'Años del Gestor',
+    'averageManagerTenure_firm': 'Años en la Firma',
+    'distributionYield': 'Rentabilidad por Dividendo %',
+    
+    # Comisiones
+    'maximumManagementFee': 'Comisión Gestión Máx %',
+    'hasPerformanceFee': 'Tiene Com. Éxito',
+    
+    # Ratings adicionales
+    'fundStarRating_10y': '⭐ Rating 10 Años',
+    'morningstarRiskRating_3y': 'Riesgo 3 Años',
+    'morningstarRiskRating_5y': 'Riesgo 5 Años',
+    'morningstarRiskRating_10y': 'Riesgo 10 Años',
+    'medalistRating_overall': 'Rating Medallista',
+    
+    # Percentiles adicionales
+    'returnRankCategory_5y': 'Percentil 5 Años',
+    'returnRankCategory_10y': 'Percentil 10 Años',
+    
+    # ESG detallado
+    'corporateSustainabilityScore_total': 'ESG Score Total',
+    'corporateSustainabilityScore_environmental': 'ESG Ambiental',
+    'corporateSustainabilityScore_social': 'ESG Social',
+    'corporateSustainabilityScore_governance': 'ESG Gobernanza',
+    
+    # Características adicionales
+    'totalNetAssetsForShareClass': 'Activos Netos Clase',
+    'investmentType': 'Tipo de Inversión',
+    'primaryBenchmark': 'Benchmark Principal',
+    'inceptionDate': 'Fecha de Inicio',
+    'data_quality': 'Calidad de Datos',
+    'data_completeness': 'Completitud de Datos %',
+    
+    # Style boxes
+    'fundEquityStyleBox': 'Style Box Renta Variable',
+    'fundFixedIncomeStyleBox': 'Style Box Renta Fija',
+    'fundAlternativeStyleBox': 'Style Box Alternativo'
+}
+
+ALL_COLUMN_TRANSLATIONS.update(ADDITIONAL_TRANSLATIONS)
+
 # Preset configurations
 PRESET_CONFIGS = {
     'Básico': ['name', 'fund_type', 'morningstarCategory', 'totalReturn_1y', 
@@ -576,6 +665,16 @@ def main():
             # Get available columns for sorting
             available_columns = filtered_df.columns.tolist()
             
+            # Create friendly names for sorting columns
+            sort_friendly_names = {}
+            for col in available_columns:
+                if col in ALL_COLUMN_TRANSLATIONS:
+                    sort_friendly_names[col] = ALL_COLUMN_TRANSLATIONS[col]
+                else:
+                    # Create a friendly name for columns not in translations
+                    friendly_name = col.replace('_', ' ').replace('[', ' ').replace(']', '')
+                    sort_friendly_names[col] = friendly_name.title()
+            
             # Prioritize common sorting columns
             priority_cols = ['totalReturn_1y', 'totalReturn_3y', 'sharpeRatio_3yMonthly', 
                            'fundSize', 'ongoingCharge', 'fundStarRating_overall']
@@ -587,6 +686,7 @@ def main():
             sort_by = st.selectbox(
                 "🔽 Ordenar por",
                 options=sort_options,
+                format_func=lambda x: sort_friendly_names.get(x, x),
                 index=0 if sort_options else None,
                 help="Selecciona la columna para ordenar"
             )
@@ -790,30 +890,58 @@ def main():
                 # Get numeric columns for scatter plot
                 numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
                 
+                # Create friendly names for the columns
+                friendly_names = {}
+                for col in numeric_cols:
+                    if col in ALL_COLUMN_TRANSLATIONS:
+                        friendly_names[col] = ALL_COLUMN_TRANSLATIONS[col]
+                    else:
+                        # Create a friendly name for columns not in translations
+                        friendly_name = col.replace('_', ' ').replace('[', ' ').replace(']', '')
+                        friendly_name = friendly_name.replace('Monthly', ' Mensual')
+                        friendly_name = friendly_name.replace('Return', 'Retorno')
+                        friendly_name = friendly_name.replace('totalReturn', 'Retorno')
+                        friendly_name = friendly_name.replace('standardDeviation', 'Volatilidad')
+                        friendly_name = friendly_name.replace('sharpeRatio', 'Ratio Sharpe')
+                        friendly_names[col] = friendly_name.title()
+                
                 col1, col2, col3 = st.columns(3)
                 
                 with col1:
+                    # Default to volatility if available
+                    default_x = 'standardDeviation_3yMonthly' if 'standardDeviation_3yMonthly' in numeric_cols else numeric_cols[0] if numeric_cols else None
+                    
                     x_axis = st.selectbox(
-                        "Eje X",
+                        "📊 Eje X",
                         options=numeric_cols,
-                        index=numeric_cols.index('standardDeviation_3yMonthly') 
-                            if 'standardDeviation_3yMonthly' in numeric_cols else 0
+                        format_func=lambda x: friendly_names.get(x, x),
+                        index=numeric_cols.index(default_x) if default_x in numeric_cols else 0,
+                        help="Selecciona la métrica para el eje horizontal"
                     )
                 
                 with col2:
+                    # Default to return if available
+                    default_y = 'totalReturn_3y' if 'totalReturn_3y' in numeric_cols else numeric_cols[0] if numeric_cols else None
+                    
                     y_axis = st.selectbox(
-                        "Eje Y",
+                        "📈 Eje Y",
                         options=numeric_cols,
-                        index=numeric_cols.index('totalReturn_3y') 
-                            if 'totalReturn_3y' in numeric_cols else 0
+                        format_func=lambda x: friendly_names.get(x, x),
+                        index=numeric_cols.index(default_y) if default_y in numeric_cols else 0,
+                        help="Selecciona la métrica para el eje vertical"
                     )
                 
                 with col3:
+                    # Size variable with None option
+                    size_options = ['Ninguno'] + numeric_cols
+                    default_size = 'fundSize' if 'fundSize' in numeric_cols else 'Ninguno'
+                    
                     size_var = st.selectbox(
-                        "Tamaño (opcional)",
-                        options=['None'] + numeric_cols,
-                        index=numeric_cols.index('fundSize') + 1 
-                            if 'fundSize' in numeric_cols else 0
+                        "⭕ Tamaño de punto",
+                        options=size_options,
+                        format_func=lambda x: 'Sin tamaño variable' if x == 'Ninguno' else friendly_names.get(x, x),
+                        index=size_options.index(default_size),
+                        help="Variable para determinar el tamaño de los puntos (opcional)"
                     )
                 
                 # Create scatter plot
@@ -821,11 +949,15 @@ def main():
                     scatter_data = filtered_df.dropna(subset=[x_axis, y_axis]).copy()
                     
                     # Handle size variable
-                    if size_var != 'None':
+                    if size_var != 'Ninguno':
                         scatter_data[size_var] = scatter_data[size_var].fillna(scatter_data[size_var].median())
                         size_col = size_var
                     else:
                         size_col = None
+                    
+                    # Get friendly names for axis labels
+                    x_label = friendly_names.get(x_axis, x_axis)
+                    y_label = friendly_names.get(y_axis, y_axis)
                     
                     fig = px.scatter(
                         scatter_data,
@@ -834,7 +966,13 @@ def main():
                         color='fund_type',
                         size=size_col if size_col else None,
                         hover_data=['name', 'firmName', 'morningstarCategory'],
-                        title=f"{y_axis} vs {x_axis}",
+                        title=f"{y_label} vs {x_label}",
+                        labels={
+                            x_axis: x_label,
+                            y_axis: y_label,
+                            'fund_type': 'Tipo de Fondo',
+                            size_var: friendly_names.get(size_var, size_var) if size_var != 'Ninguno' else None
+                        },
                         color_discrete_map={
                             'Renta Variable': '#3b82f6',
                             'Renta Fija': '#10b981',
@@ -847,35 +985,53 @@ def main():
                     x_median = scatter_data[x_axis].median()
                     y_median = scatter_data[y_axis].median()
                     
-                    fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5)
-                    fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5)
+                    fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5,
+                                 annotation_text=f"Mediana: {y_median:.2f}")
+                    fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5,
+                                 annotation_text=f"Mediana: {x_median:.2f}")
                     
                     # Highlight selected funds
                     if selected_funds:
                         selected_data = scatter_data[scatter_data['name'].isin(selected_funds)]
-                        fig.add_trace(go.Scatter(
-                            x=selected_data[x_axis],
-                            y=selected_data[y_axis],
-                            mode='markers',
-                            marker=dict(
-                                size=15,
-                                color='red',
-                                symbol='star',
-                                line=dict(color='white', width=2)
-                            ),
-                            name='Fondos Seleccionados',
-                            showlegend=True,
-                            hovertemplate='<b>%{text}</b><extra></extra>',
-                            text=selected_data['name']
-                        ))
+                        if not selected_data.empty:
+                            fig.add_trace(go.Scatter(
+                                x=selected_data[x_axis],
+                                y=selected_data[y_axis],
+                                mode='markers',
+                                marker=dict(
+                                    size=15,
+                                    color='red',
+                                    symbol='star',
+                                    line=dict(color='white', width=2)
+                                ),
+                                name='Fondos Seleccionados',
+                                showlegend=True,
+                                hovertemplate='<b>%{text}</b><br>' + 
+                                            f'{x_label}: ' + '%{x:.2f}<br>' +
+                                            f'{y_label}: ' + '%{y:.2f}<extra></extra>',
+                                text=selected_data['name']
+                            ))
                     
                     fig.update_layout(
                         paper_bgcolor='#0e1117',
                         plot_bgcolor='#1a1f2e',
                         font=dict(color='#fafafa'),
                         height=600,
-                        xaxis=dict(gridcolor='#2d3748', zeroline=False),
-                        yaxis=dict(gridcolor='#2d3748', zeroline=False)
+                        xaxis=dict(
+                            gridcolor='#2d3748',
+                            zeroline=False,
+                            title=x_label
+                        ),
+                        yaxis=dict(
+                            gridcolor='#2d3748',
+                            zeroline=False,
+                            title=y_label
+                        ),
+                        hoverlabel=dict(
+                            bgcolor="#1a1f2e",
+                            font_size=12,
+                            font_family="Arial"
+                        )
                     )
                     
                     st.plotly_chart(fig, use_container_width=True)
