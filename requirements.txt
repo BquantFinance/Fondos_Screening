@@ -3,3 +3,4 @@ plotly
 seaborn
 numpy
 streamlit
+scipy
