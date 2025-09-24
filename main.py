@@ -480,7 +480,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis de fondos cerrados
+                    Aprende en qué consiste este sesgo y qué implicaciones tiene en la industria.
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
