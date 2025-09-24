@@ -465,9 +465,9 @@ def main():
     with col1:
         st.markdown("""
             <div class="newsletter-banner">
-                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita</h3>
+                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis cuantitativo profesional
+                    Análisis cuantitativo de Fondos de inversión
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
