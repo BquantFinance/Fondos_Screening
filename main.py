@@ -209,7 +209,7 @@ st.markdown("""
 # Load data with caching
 @st.cache_data
 def load_data():
-    df = pd.read_csv('Fondos_España.csv', index_col=0)
+    df = pd.read_csv('Fondos_España.csv')
     
     # Clean column names (remove brackets)
     df.columns = df.columns.str.replace(r'\[', '_', regex=True).str.replace(r'\]', '', regex=True)
@@ -567,7 +567,7 @@ def main():
             <div class="newsletter-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Newsletter sobre Fondos de Inversión.
+                    Análisis de fondos de inversión y todo lo que les rodea.
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
@@ -580,7 +580,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Lo que no te cuentan de la industria.
+                    Lo que no te cuentan en la industria.
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
@@ -1352,10 +1352,19 @@ def main():
                 if x_axis and y_axis:
                     scatter_data = filtered_df.dropna(subset=[x_axis, y_axis]).copy()
                     
-                    # Handle size variable
+                    # Handle size variable - ensure positive values for Plotly
                     if size_var:
                         scatter_data[size_var] = scatter_data[size_var].fillna(scatter_data[size_var].median())
-                        size_col = size_var
+                        # Ensure all size values are positive
+                        min_size = scatter_data[size_var].min()
+                        if min_size < 0:
+                            # Shift all values to be positive, maintaining relative differences
+                            scatter_data[f'{size_var}_size'] = scatter_data[size_var] - min_size + 1
+                            size_col = f'{size_var}_size'
+                        else:
+                            # Add small offset to avoid zero sizes
+                            scatter_data[f'{size_var}_size'] = scatter_data[size_var] + 0.1
+                            size_col = f'{size_var}_size'
                     else:
                         size_col = None
                     
@@ -1518,9 +1527,9 @@ def main():
                 44,341 fondos | 96 métricas | Análisis profesional
             </p>
             <p style='color: #8b949e; margin-top: 10px;'>
-                Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' 
+                Creado con ❤️ por <a href='https://twitter.com/Gsnchez' target='_blank' 
                                      style='color: #667eea; text-decoration: none; font-weight: 700;'>
-                    @Gnschez
+                    @Gsnchez
                 </a>
             </p>
         </div>
