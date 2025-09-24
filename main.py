@@ -455,7 +455,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener Profesional - Fondos Españoles
+            🔍 Screener BQUANT - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
