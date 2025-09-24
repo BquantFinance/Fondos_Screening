@@ -590,7 +590,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener Profesional - Fondos Españoles BQuant
+            🔍 Screener Profesional - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -839,29 +839,29 @@ def main():
             ]
         
         if quick_return == '> 0%':
-            filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 0]
+            filtered_df = filtered_df[(filtered_df['totalReturn_1y'] > 0) | filtered_df['totalReturn_1y'].isna()]
         elif quick_return == '> 10%':
-            filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 10]
+            filtered_df = filtered_df[(filtered_df['totalReturn_1y'] > 10) | filtered_df['totalReturn_1y'].isna()]
         elif quick_return == '> 20%':
-            filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 20]
+            filtered_df = filtered_df[(filtered_df['totalReturn_1y'] > 20) | filtered_df['totalReturn_1y'].isna()]
         
         if quick_expense == '< 2%':
-            filtered_df = filtered_df[filtered_df['ongoingCharge'] < 2]
+            filtered_df = filtered_df[(filtered_df['ongoingCharge'] < 2) | filtered_df['ongoingCharge'].isna()]
         elif quick_expense == '< 1.5%':
-            filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1.5]
+            filtered_df = filtered_df[(filtered_df['ongoingCharge'] < 1.5) | filtered_df['ongoingCharge'].isna()]
         elif quick_expense == '< 1%':
-            filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1]
+            filtered_df = filtered_df[(filtered_df['ongoingCharge'] < 1) | filtered_df['ongoingCharge'].isna()]
         elif quick_expense == '< 0.5%':
-            filtered_df = filtered_df[filtered_df['ongoingCharge'] < 0.5]
+            filtered_df = filtered_df[(filtered_df['ongoingCharge'] < 0.5) | filtered_df['ongoingCharge'].isna()]
         
         if quick_size == '> 10M€':
-            filtered_df = filtered_df[filtered_df['fundSize'] > 10e6]
+            filtered_df = filtered_df[(filtered_df['fundSize'] > 10e6) | filtered_df['fundSize'].isna()]
         elif quick_size == '> 50M€':
-            filtered_df = filtered_df[filtered_df['fundSize'] > 50e6]
+            filtered_df = filtered_df[(filtered_df['fundSize'] > 50e6) | filtered_df['fundSize'].isna()]
         elif quick_size == '> 100M€':
-            filtered_df = filtered_df[filtered_df['fundSize'] > 100e6]
+            filtered_df = filtered_df[(filtered_df['fundSize'] > 100e6) | filtered_df['fundSize'].isna()]
         elif quick_size == '> 500M€':
-            filtered_df = filtered_df[filtered_df['fundSize'] > 500e6]
+            filtered_df = filtered_df[(filtered_df['fundSize'] > 500e6) | filtered_df['fundSize'].isna()]
         
         if quick_esg > 0:
             filtered_df = filtered_df[
@@ -1003,65 +1003,83 @@ def main():
             
             with stats_cols[0]:
                 if 'totalReturn_1y' in sorted_df.columns:
-                    p25 = sorted_df['totalReturn_1y'].quantile(0.25)
-                    p50 = sorted_df['totalReturn_1y'].quantile(0.50)
-                    p75 = sorted_df['totalReturn_1y'].quantile(0.75)
-                    
-                    st.markdown(f"""
-                    **Retorno 1A (Percentiles)**
-                    - P25: {p25:.2f}%
-                    - P50: {p50:.2f}%
-                    - P75: {p75:.2f}%
-                    """)
+                    clean_returns = sorted_df['totalReturn_1y'].dropna()
+                    if len(clean_returns) > 0:
+                        p25 = clean_returns.quantile(0.25)
+                        p50 = clean_returns.quantile(0.50)
+                        p75 = clean_returns.quantile(0.75)
+                        
+                        st.markdown(f"""
+                        **Retorno 1A (Percentiles)**
+                        - P25: {p25:.2f}%
+                        - P50: {p50:.2f}%
+                        - P75: {p75:.2f}%
+                        """)
             
             with stats_cols[1]:
                 if 'sharpeRatio_3yMonthly' in sorted_df.columns:
-                    p25 = sorted_df['sharpeRatio_3yMonthly'].quantile(0.25)
-                    p50 = sorted_df['sharpeRatio_3yMonthly'].quantile(0.50)
-                    p75 = sorted_df['sharpeRatio_3yMonthly'].quantile(0.75)
-                    
-                    st.markdown(f"""
-                    **Sharpe 3A (Percentiles)**
-                    - P25: {p25:.2f}
-                    - P50: {p50:.2f}
-                    - P75: {p75:.2f}
-                    """)
+                    clean_sharpe = sorted_df['sharpeRatio_3yMonthly'].dropna()
+                    if len(clean_sharpe) > 0:
+                        p25 = clean_sharpe.quantile(0.25)
+                        p50 = clean_sharpe.quantile(0.50)
+                        p75 = clean_sharpe.quantile(0.75)
+                        
+                        st.markdown(f"""
+                        **Sharpe 3A (Percentiles)**
+                        - P25: {p25:.2f}
+                        - P50: {p50:.2f}
+                        - P75: {p75:.2f}
+                        """)
             
             with stats_cols[2]:
                 if 'ongoingCharge' in sorted_df.columns:
-                    p25 = sorted_df['ongoingCharge'].quantile(0.25)
-                    p50 = sorted_df['ongoingCharge'].quantile(0.50)
-                    p75 = sorted_df['ongoingCharge'].quantile(0.75)
-                    
-                    st.markdown(f"""
-                    **Gastos (Percentiles)**
-                    - P25: {p25:.2f}%
-                    - P50: {p50:.2f}%
-                    - P75: {p75:.2f}%
-                    """)
+                    clean_charges = sorted_df['ongoingCharge'].dropna()
+                    if len(clean_charges) > 0:
+                        p25 = clean_charges.quantile(0.25)
+                        p50 = clean_charges.quantile(0.50)
+                        p75 = clean_charges.quantile(0.75)
+                        
+                        st.markdown(f"""
+                        **Gastos (Percentiles)**
+                        - P25: {p25:.2f}%
+                        - P50: {p50:.2f}%
+                        - P75: {p75:.2f}%
+                        """)
             
             with stats_cols[3]:
                 if 'fundSize' in sorted_df.columns:
-                    total_aum = sorted_df['fundSize'].sum() / 1e9
-                    avg_aum = sorted_df['fundSize'].mean() / 1e6
-                    
-                    st.markdown(f"""
-                    **AUM Agregado**
-                    - Total: €{total_aum:.1f}B
-                    - Promedio: €{avg_aum:.1f}M
-                    """)
+                    clean_sizes = sorted_df['fundSize'].dropna()
+                    if len(clean_sizes) > 0:
+                        total_aum = clean_sizes.sum() / 1e9
+                        avg_aum = clean_sizes.mean() / 1e6
+                        
+                        st.markdown(f"""
+                        **AUM Agregado**
+                        - Total: €{total_aum:.1f}B
+                        - Promedio: €{avg_aum:.1f}M
+                        """)
     
     with main_tabs[1]:  # ANALYSIS TAB
         st.markdown("### 📊 **Análisis de Distribuciones**")
         
         # Risk-return scatter
         if 'standardDeviation_3yMonthly' in filtered_df.columns and 'totalReturn_3y' in filtered_df.columns:
+            # Prepare data for scatter plot
+            scatter_data = filtered_df.dropna(subset=['standardDeviation_3yMonthly', 'totalReturn_3y']).copy()
+            
+            # Handle NaN values in fundSize - replace with a default value
+            if 'fundSize' in scatter_data.columns:
+                scatter_data['fundSize'] = scatter_data['fundSize'].fillna(1e6)  # Default 1M for missing values
+                size_col = 'fundSize'
+            else:
+                size_col = None
+            
             fig = px.scatter(
-                filtered_df.dropna(subset=['standardDeviation_3yMonthly', 'totalReturn_3y']),
+                scatter_data,
                 x='standardDeviation_3yMonthly',
                 y='totalReturn_3y',
                 color='fund_type',
-                size='fundSize',
+                size=size_col if size_col else None,
                 hover_data=['name', 'firmName', 'morningstarCategory'],
                 labels={
                     'standardDeviation_3yMonthly': 'Riesgo (Volatilidad 3A) %',
@@ -1078,8 +1096,8 @@ def main():
             )
             
             # Add quadrant lines
-            x_median = filtered_df['standardDeviation_3yMonthly'].median()
-            y_median = filtered_df['totalReturn_3y'].median()
+            x_median = scatter_data['standardDeviation_3yMonthly'].median()
+            y_median = scatter_data['totalReturn_3y'].median()
             
             fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5)
             fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5)
@@ -1245,5 +1263,5 @@ def main():
     """, unsafe_allow_html=True)
 
 # Run the app
-if __name__ == "__main__":  
+if __name__ == "__main__":
     main()
