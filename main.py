@@ -282,62 +282,115 @@ COLUMN_DEFINITIONS = {
         'firmName': 'Gestora',
         'domicile': 'Domicilio',
         'baseCurrency': 'Divisa',
-        'ticker': 'Ticker'
+        'primaryBenchmark': 'Índice Referencia'
     },
     'Clasificación': {
-        'fund_type': 'Tipo',
-        'morningstarCategory': 'Categoría',
-        'isIndexFund': 'Indexado',
+        'fund_type': 'Tipo de Fondo',
+        'broadCategoryGroup': 'Categoría General',
+        'morningstarCategory': 'Categoría Morningstar',
+        'investmentType': 'Tipo de Inversión',
+        'isIndexFund': 'Fondo Indexado',
         'isPrimaryShareClassInMarket': 'Clase Principal',
         'distributionFundType': 'Tipo Distribución',
-        'dividendDistributionFrequency': 'Frecuencia Dividendos'
+        'dividendDistributionFrequency': 'Frecuencia Dividendos',
+        'universe': 'Universo'
     },
     'Retornos': {
-        'totalReturn_1m': '1 Mes %',
-        'totalReturn_3m': '3 Meses %',
-        'totalReturn_6m': '6 Meses %',
-        'totalReturn_1y': '1 Año %',
-        'totalReturn_3y': '3 Años %',
-        'totalReturn_5y': '5 Años %',
-        'totalReturn_10y': '10 Años %',
-        'totalReturn_ytd': 'YTD %',
+        'totalReturn_1d': 'Retorno 1 Día %',
+        'totalReturn_1w': 'Retorno 1 Semana %',
+        'totalReturn_1m': 'Retorno 1 Mes %',
+        'totalReturn_2m': 'Retorno 2 Meses %',
+        'totalReturn_3m': 'Retorno 3 Meses %',
+        'totalReturn_6m': 'Retorno 6 Meses %',
+        'totalReturn_9m': 'Retorno 9 Meses %',
+        'totalReturn_1y': 'Retorno 1 Año %',
+        'totalReturn_2y': 'Retorno 2 Años %',
+        'totalReturn_3y': 'Retorno 3 Años %',
+        'totalReturn_4y': 'Retorno 4 Años %',
+        'totalReturn_5y': 'Retorno 5 Años %',
+        'totalReturn_6y': 'Retorno 6 Años %',
+        'totalReturn_7y': 'Retorno 7 Años %',
+        'totalReturn_8y': 'Retorno 8 Años %',
+        'totalReturn_9y': 'Retorno 9 Años %',
+        'totalReturn_10y': 'Retorno 10 Años %',
+        'totalReturn_15y': 'Retorno 15 Años %',
+        'totalReturn_20y': 'Retorno 20 Años %',
+        'totalReturn_ytd': 'Retorno YTD %',
+        'totalReturn_qtd': 'Retorno Trimestre %'
     },
     'Riesgo': {
-        'standardDeviation_1yMonthly': 'Vol 1A %',
-        'standardDeviation_3yMonthly': 'Vol 3A %',
-        'standardDeviation_5yMonthly': 'Vol 5A %',
-        'beta_1yMonthly': 'Beta 1A',
-        'beta_3yMonthly': 'Beta 3A',
-        'beta_5yMonthly': 'Beta 5A'
+        'standardDeviation_1yMonthly': 'Volatilidad 1 Año %',
+        'standardDeviation_3yMonthly': 'Volatilidad 3 Años %',
+        'standardDeviation_5yMonthly': 'Volatilidad 5 Años %',
+        'standardDeviation_10yMonthly': 'Volatilidad 10 Años %',
+        'standardDeviation_15yMonthly': 'Volatilidad 15 Años %',
+        'standardDeviation_20yMonthly': 'Volatilidad 20 Años %',
+        'beta_1yMonthly': 'Beta 1 Año',
+        'beta_3yMonthly': 'Beta 3 Años',
+        'beta_5yMonthly': 'Beta 5 Años',
+        'beta_10yMonthly': 'Beta 10 Años',
+        'beta_15yMonthly': 'Beta 15 Años',
+        'beta_20yMonthly': 'Beta 20 Años',
+        'rSquared_3yMonthly': 'R-Cuadrado 3 Años',
+        'rSquared_5yMonthly': 'R-Cuadrado 5 Años'
     },
     'Riesgo Ajustado': {
-        'sharpeRatio_1yMonthly': 'Sharpe 1A',
-        'sharpeRatio_3yMonthly': 'Sharpe 3A',
-        'sharpeRatio_5yMonthly': 'Sharpe 5A',
-        'alpha_1yMonthly': 'Alpha 1A',
-        'alpha_3yMonthly': 'Alpha 3A',
-        'alpha_5yMonthly': 'Alpha 5A',
+        'sharpeRatio_1yMonthly': 'Ratio Sharpe 1 Año',
+        'sharpeRatio_3yMonthly': 'Ratio Sharpe 3 Años',
+        'sharpeRatio_5yMonthly': 'Ratio Sharpe 5 Años',
+        'sharpeRatio_10yMonthly': 'Ratio Sharpe 10 Años',
+        'sharpeRatio_15yMonthly': 'Ratio Sharpe 15 Años',
+        'sharpeRatio_20yMonthly': 'Ratio Sharpe 20 Años',
+        'alpha_1yMonthly': 'Alpha 1 Año %',
+        'alpha_3yMonthly': 'Alpha 3 Años %',
+        'alpha_5yMonthly': 'Alpha 5 Años %',
+        'alpha_10yMonthly': 'Alpha 10 Años %',
+        'alpha_15yMonthly': 'Alpha 15 Años %',
+        'alpha_20yMonthly': 'Alpha 20 Años %',
+        'informationRatio_3y': 'Ratio Información 3 Años',
+        'informationRatio_5y': 'Ratio Información 5 Años'
     },
     'Costes': {
-        'ongoingCharge': 'Gastos %',
-        'maximumEntryCost': 'Com. Entrada %',
-        'maximumExitCost': 'Com. Salida %',
+        'ongoingCharge': 'Gastos Corrientes %',
+        'maximumEntryCost': 'Comisión Entrada Máx %',
+        'maximumExitCost': 'Comisión Salida Máx %',
+        'maximumManagementFee': 'Comisión Gestión Máx %',
+        'hasPerformanceFee': 'Comisión de Éxito'
     },
     'Ratings': {
-        'fundStarRating_overall': '⭐ Rating',
-        'fundStarRating_3y': '⭐ 3A',
-        'fundStarRating_5y': '⭐ 5A',
-        'sustainabilityRating': '🌱 ESG',
-        'morningstarRiskRating_overall': 'Rating Riesgo',
+        'fundStarRating_overall': '⭐ Rating General',
+        'fundStarRating_3y': '⭐ Rating 3 Años',
+        'fundStarRating_5y': '⭐ Rating 5 Años',
+        'fundStarRating_10y': '⭐ Rating 10 Años',
+        'sustainabilityRating': '🌱 Rating ESG',
+        'morningstarRiskRating_overall': 'Rating Riesgo General',
+        'morningstarRiskRating_3y': 'Rating Riesgo 3 Años',
+        'morningstarRiskRating_5y': 'Rating Riesgo 5 Años',
+        'morningstarRiskRating_10y': 'Rating Riesgo 10 Años',
+        'medalistRating_overall': '🏅 Rating Analista',
+        'corporateSustainabilityScore_environmental': 'ESG Medioambiental',
+        'corporateSustainabilityScore_social': 'ESG Social',
+        'corporateSustainabilityScore_governance': 'ESG Gobernanza',
+        'corporateSustainabilityScore_total': 'ESG Total'
     },
     'Características': {
-        'fundSize': 'AUM €',
-        'totalNetAssetsForShareClass': 'AUM Clase €',
-        'fund_age_years': 'Antigüedad',
-        'minimumInitialInvestment': 'Inv. Mínima',
-        'returnRankCategory_1y': 'Percentil 1A',
-        'returnRankCategory_3y': 'Percentil 3A',
-        'distributionYield': 'Rendimiento Dist. %'
+        'fundSize': 'Patrimonio Fondo €',
+        'totalNetAssetsForShareClass': 'Patrimonio Clase €',
+        'fund_age_years': 'Antigüedad (años)',
+        'minimumInitialInvestment': 'Inversión Mínima €',
+        'returnRankCategory_1y': 'Percentil Categoría 1 Año',
+        'returnRankCategory_3y': 'Percentil Categoría 3 Años',
+        'returnRankCategory_5y': 'Percentil Categoría 5 Años',
+        'returnRankCategory_10y': 'Percentil Categoría 10 Años',
+        'distributionYield': 'Rentabilidad por Dividendo %',
+        'averageManagerTenure_fund': 'Antigüedad Gestor (años)',
+        'averageManagerTenure_firm': 'Antigüedad en Gestora (años)',
+        'inceptionDate': 'Fecha de Inicio'
+    },
+    'Estilos': {
+        'fundEquityStyleBox': 'Estilo Renta Variable',
+        'fundFixedIncomeStyleBox': 'Estilo Renta Fija',
+        'fundAlternativeStyleBox': 'Estilo Alternativo'
     }
 }
 
@@ -502,7 +555,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener Profesional - Fondos Españoles
+            🔍 Screener BQuant - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -512,9 +565,9 @@ def main():
     with col1:
         st.markdown("""
             <div class="newsletter-banner">
-                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita</h3>
+                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis cuantitativo profesional
+                    Newsletter sobre Fondos de Inversión.
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
@@ -527,7 +580,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis de fondos cerrados
+                    Lo que no te cuentan de la industria.
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
@@ -906,22 +959,34 @@ def main():
             
             # Prioritize common sorting options
             priority_options = [
-                '📈 Retorno 1 Año', '📊 Retorno 3 Años', '🎯 Sharpe 3A',
-                '💼 Patrimonio (AUM)', '💰 Gastos Corrientes', '⭐ Rating General',
-                '🌱 ESG Rating', '📉 Volatilidad 3A', '🔥 Alpha 3A'
+                '📈 Retorno 1 Año %', 
+                '📊 Retorno 3 Años %', 
+                '💰 Retorno 5 Años %',
+                '🎯 Ratio Sharpe 3 Años',
+                '💼 Patrimonio Fondo €', 
+                '💵 Gastos Corrientes %', 
+                '⭐ Rating General',
+                '🌱 Rating ESG', 
+                '📉 Volatilidad 3 Años %', 
+                '🔥 Alpha 3 Años %',
+                '📊 Percentil Categoría 1 Año',
+                '💎 Inversión Mínima €'
             ]
             
             # Map priority options to actual columns
             priority_mapping = {
-                '📈 Retorno 1 Año': 'totalReturn_1y',
-                '📊 Retorno 3 Años': 'totalReturn_3y',
-                '🎯 Sharpe 3A': 'sharpeRatio_3yMonthly',
-                '💼 Patrimonio (AUM)': 'fundSize',
-                '💰 Gastos Corrientes': 'ongoingCharge',
+                '📈 Retorno 1 Año %': 'totalReturn_1y',
+                '📊 Retorno 3 Años %': 'totalReturn_3y',
+                '💰 Retorno 5 Años %': 'totalReturn_5y',
+                '🎯 Ratio Sharpe 3 Años': 'sharpeRatio_3yMonthly',
+                '💼 Patrimonio Fondo €': 'fundSize',
+                '💵 Gastos Corrientes %': 'ongoingCharge',
                 '⭐ Rating General': 'fundStarRating_overall',
-                '🌱 ESG Rating': 'sustainabilityRating',
-                '📉 Volatilidad 3A': 'standardDeviation_3yMonthly',
-                '🔥 Alpha 3A': 'alpha_3yMonthly'
+                '🌱 Rating ESG': 'sustainabilityRating',
+                '📉 Volatilidad 3 Años %': 'standardDeviation_3yMonthly',
+                '🔥 Alpha 3 Años %': 'alpha_3yMonthly',
+                '📊 Percentil Categoría 1 Año': 'returnRankCategory_1y',
+                '💎 Inversión Mínima €': 'minimumInitialInvestment'
             }
             
             # Build available sort options
