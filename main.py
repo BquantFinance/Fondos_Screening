@@ -215,7 +215,7 @@ def load_data():
     df.columns = df.columns.str.replace(r'\[', '_', regex=True).str.replace(r'\]', '', regex=True)
     
     # Convert boolean strings to actual booleans
-    bool_cols = ['hasPerformanceFee', 'isIndexFund']
+    bool_cols = ['hasPerformanceFee', 'isIndexFund', 'isPrimaryShareClassInMarket']
     for col in bool_cols:
         if col in df.columns:
             df[col] = df[col].map({'True': True, 'False': False, True: True, False: False})
@@ -234,6 +234,28 @@ def load_data():
     if 'fund_type' in df.columns:
         df['fund_type'] = df['fund_type'].map(type_translations).fillna(df['fund_type'])
     
+    # Translate distribution types to Spanish
+    if 'distributionFundType' in df.columns:
+        dist_translations = {
+            'Accumulation': 'Acumulación',
+            'Distribution': 'Distribución',
+            'Income': 'Reparto',
+            'Acc': 'Acumulación',
+            'Dist': 'Distribución'
+        }
+        df['distributionFundType'] = df['distributionFundType'].map(dist_translations).fillna(df['distributionFundType'])
+    
+    # Translate dividend frequency to Spanish
+    if 'dividendDistributionFrequency' in df.columns:
+        freq_translations = {
+            'Annual': 'Anual',
+            'Quarterly': 'Trimestral',
+            'Monthly': 'Mensual',
+            'Semi-Annual': 'Semestral',
+            'None': 'Sin Distribución'
+        }
+        df['dividendDistributionFrequency'] = df['dividendDistributionFrequency'].map(freq_translations).fillna(df['dividendDistributionFrequency'])
+    
     return df
 
 # Column definitions with categories and Spanish translations
@@ -244,12 +266,16 @@ COLUMN_DEFINITIONS = {
         'fundID': 'ID Fondo',
         'firmName': 'Gestora',
         'domicile': 'Domicilio',
-        'baseCurrency': 'Divisa'
+        'baseCurrency': 'Divisa',
+        'ticker': 'Ticker'
     },
     'Clasificación': {
         'fund_type': 'Tipo',
         'morningstarCategory': 'Categoría',
         'isIndexFund': 'Indexado',
+        'isPrimaryShareClassInMarket': 'Clase Principal',
+        'distributionFundType': 'Tipo Distribución',
+        'dividendDistributionFrequency': 'Frecuencia Dividendos'
     },
     'Retornos': {
         'totalReturn_1m': '1 Mes %',
@@ -291,17 +317,19 @@ COLUMN_DEFINITIONS = {
     },
     'Características': {
         'fundSize': 'AUM €',
+        'totalNetAssetsForShareClass': 'AUM Clase €',
         'fund_age_years': 'Antigüedad',
         'minimumInitialInvestment': 'Inv. Mínima',
         'returnRankCategory_1y': 'Percentil 1A',
         'returnRankCategory_3y': 'Percentil 3A',
+        'distributionYield': 'Rendimiento Dist. %'
     }
 }
 
 # Preset configurations
 PRESET_CONFIGS = {
-    'Básico': ['name', 'fund_type', 'morningstarCategory', 'totalReturn_1y', 
-               'sharpeRatio_3yMonthly', 'ongoingCharge', 'fundStarRating_overall'],
+    'Básico': ['name', 'fund_type', 'isPrimaryShareClassInMarket', 'morningstarCategory', 
+               'totalReturn_1y', 'sharpeRatio_3yMonthly', 'ongoingCharge', 'fundStarRating_overall'],
     
     'Performance': ['name', 'totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m',
                    'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 
@@ -314,10 +342,14 @@ PRESET_CONFIGS = {
     'ESG': ['name', 'fund_type', 'sustainabilityRating', 'fundStarRating_overall',
            'totalReturn_1y', 'ongoingCharge'],
     
-    'Completo': ['name', 'fund_type', 'morningstarCategory', 'totalReturn_1y', 
-                'totalReturn_3y', 'sharpeRatio_3yMonthly', 'standardDeviation_3yMonthly', 
-                'alpha_3yMonthly', 'beta_3yMonthly', 'ongoingCharge', 'fundSize', 
-                'fundStarRating_overall', 'sustainabilityRating']
+    'Distribución': ['name', 'distributionFundType', 'dividendDistributionFrequency', 
+                    'distributionYield', 'totalReturn_1y', 'ongoingCharge', 
+                    'fundSize', 'isPrimaryShareClassInMarket'],
+    
+    'Completo': ['name', 'fund_type', 'isPrimaryShareClassInMarket', 'morningstarCategory', 
+                'totalReturn_1y', 'totalReturn_3y', 'sharpeRatio_3yMonthly', 
+                'standardDeviation_3yMonthly', 'alpha_3yMonthly', 'beta_3yMonthly', 
+                'ongoingCharge', 'fundSize', 'fundStarRating_overall', 'sustainabilityRating']
 }
 
 # Helper functions
@@ -455,7 +487,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener BQUANT - Fondos Españoles
+            🔍 Screener BQuant - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -467,7 +499,7 @@ def main():
             <div class="newsletter-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis cuantitativo de Fondos de inversión
+                    Aprende sobre fondos de inversión.
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
@@ -480,7 +512,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Aprende en qué consiste este sesgo y qué implicaciones tiene en la industria.
+                    Entra aquí para entender cómo te engaña la industria.
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
@@ -634,6 +666,44 @@ def main():
                 help="Estrategia de gestión del fondo"
             )
         
+        # Fourth row of filters for share class and distribution characteristics
+        filter_row4 = st.columns(4)
+        
+        with filter_row4[0]:
+            selected_share_class = st.selectbox(
+                "🎯 **Clase Principal**",
+                options=['Todas las Clases', 'Solo Clases Principales', 'Solo Clases Secundarias'],
+                help="Filtra por clase principal del fondo en el mercado"
+            )
+        
+        with filter_row4[1]:
+            dist_types = ['Todos']
+            if 'distributionFundType' in df.columns:
+                dist_types += df['distributionFundType'].dropna().unique().tolist()
+            selected_distribution = st.selectbox(
+                "💵 **Tipo de Distribución**",
+                options=dist_types,
+                help="Acumulación (reinvierte) vs Distribución (reparte dividendos)"
+            )
+        
+        with filter_row4[2]:
+            freq_options = ['Todas']
+            if 'dividendDistributionFrequency' in df.columns:
+                freq_options += df['dividendDistributionFrequency'].dropna().unique().tolist()
+            selected_frequency = st.selectbox(
+                "📅 **Frecuencia de Dividendos**",
+                options=freq_options,
+                help="Frecuencia de reparto de dividendos"
+            )
+        
+        with filter_row4[3]:
+            # Add minimum initial investment filter
+            selected_min_investment = st.selectbox(
+                "💸 **Inversión Mínima**",
+                options=['Todos', '< 1,000€', '< 10,000€', '< 50,000€', '< 100,000€', '> 100,000€ 💎'],
+                help="Inversión inicial mínima requerida"
+            )
+        
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Apply filters
@@ -769,6 +839,34 @@ def main():
             else:
                 filtered_df = filtered_df[filtered_df['isIndexFund'] == False]
         
+        # Apply share class filter
+        if 'isPrimaryShareClassInMarket' in filtered_df.columns and selected_share_class != 'Todas las Clases':
+            if selected_share_class == 'Solo Clases Principales':
+                filtered_df = filtered_df[filtered_df['isPrimaryShareClassInMarket'] == True]
+            else:  # Solo Clases Secundarias
+                filtered_df = filtered_df[filtered_df['isPrimaryShareClassInMarket'] == False]
+        
+        # Apply distribution type filter
+        if 'distributionFundType' in filtered_df.columns and selected_distribution != 'Todos':
+            filtered_df = filtered_df[filtered_df['distributionFundType'] == selected_distribution]
+        
+        # Apply dividend frequency filter
+        if 'dividendDistributionFrequency' in filtered_df.columns and selected_frequency != 'Todas':
+            filtered_df = filtered_df[filtered_df['dividendDistributionFrequency'] == selected_frequency]
+        
+        # Apply minimum investment filter
+        if 'minimumInitialInvestment' in filtered_df.columns and selected_min_investment != 'Todos':
+            if selected_min_investment == '< 1,000€':
+                filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 1000]
+            elif selected_min_investment == '< 10,000€':
+                filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 10000]
+            elif selected_min_investment == '< 50,000€':
+                filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 50000]
+            elif selected_min_investment == '< 100,000€':
+                filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 100000]
+            elif selected_min_investment == '> 100,000€ 💎':
+                filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] >= 100000]
+        
         st.markdown("---")
         
         # SORTING SECTION
@@ -878,13 +976,19 @@ def main():
             for col in display_df.columns:
                 if col == 'fundSize':
                     display_df[col] = display_df[col].apply(lambda x: format_number(x, 1, '€'))
+                elif col == 'totalNetAssetsForShareClass':
+                    display_df[col] = display_df[col].apply(lambda x: format_number(x, 1, '€'))
+                elif col == 'minimumInitialInvestment':
+                    display_df[col] = display_df[col].apply(lambda x: format_number(x, 0, '€'))
                 elif 'totalReturn' in col or 'return' in col.lower():
+                    display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
+                elif 'distributionYield' in col:
                     display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
                 elif 'ongoingCharge' in col or 'maximum' in col.lower():
                     display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
                 elif any(metric in col.lower() for metric in ['sharpe', 'alpha', 'beta', 'standard']):
                     display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/D")
-                elif col in ['isIndexFund', 'hasPerformanceFee']:
+                elif col in ['isIndexFund', 'hasPerformanceFee', 'isPrimaryShareClassInMarket']:
                     display_df[col] = display_df[col].apply(lambda x: '✓' if x else '✗' if not pd.isna(x) else "N/D")
             
             # Apply translations
@@ -1064,13 +1168,19 @@ def main():
                             continue
                         elif col == 'fundSize':
                             comp_display[col] = comp_display[col].apply(lambda x: format_number(x, 1, '€'))
+                        elif col == 'totalNetAssetsForShareClass':
+                            comp_display[col] = comp_display[col].apply(lambda x: format_number(x, 1, '€'))
+                        elif col == 'minimumInitialInvestment':
+                            comp_display[col] = comp_display[col].apply(lambda x: format_number(x, 0, '€'))
                         elif 'totalReturn' in col or 'return' in col.lower():
+                            comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
+                        elif 'distributionYield' in col:
                             comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
                         elif 'ongoingCharge' in col or 'maximum' in col.lower():
                             comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
                         elif any(metric in col.lower() for metric in ['sharpe', 'alpha', 'beta', 'standard']):
                             comp_display[col] = comp_display[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/D")
-                        elif col in ['isIndexFund', 'hasPerformanceFee']:
+                        elif col in ['isIndexFund', 'hasPerformanceFee', 'isPrimaryShareClassInMarket']:
                             comp_display[col] = comp_display[col].apply(lambda x: '✓' if x else '✗' if not pd.isna(x) else "N/D")
                         elif 'Rating' in col or 'rating' in col:
                             comp_display[col] = comp_display[col].apply(lambda x: f"{x:.0f}" if not pd.isna(x) else "N/D")
@@ -1281,17 +1391,26 @@ def main():
             - Rating Morningstar (1-5 estrellas)
             - Volatilidad en rangos específicos
             - Sharpe Ratio para retorno ajustado
+            - Alpha para exceso de retorno
             
             **Costes y Tamaño:**
             - Comisiones desde ultra-bajas (<0.25%) hasta altas
             - Patrimonio desde pequeños hasta mega fondos (>1B€)
+            - Inversión mínima requerida
+            
+            **Clases y Distribución:**
+            - **Clase Principal**: Filtra solo las clases principales
+            - **Tipo Distribución**: Acumulación vs Distribución
+            - **Frecuencia Dividendos**: Anual, Trimestral, etc.
             
             #### 💡 **Consejos Profesionales**
             
+            - **Clases Principales**: Usa el filtro para ver solo las clases más líquidas
             - **Para conservadores**: Busca Volatilidad <10%, Sharpe >1
+            - **Para rentas**: Selecciona tipo Distribución con frecuencia deseada
             - **Para agresivos**: Alpha >3%, acepta mayor volatilidad
             - **Fondos eficientes**: Gastos <1% para RV, <0.5% para RF
-            - **Liquidez**: Prefiere AUM >50M€
+            - **Liquidez**: Prefiere AUM >50M€ y clases principales
             - **Sostenibles**: ESG ≥4 hojas
             - **Track record**: Antigüedad >3 años
             - **Comparación justa**: Compara fondos de la misma categoría
