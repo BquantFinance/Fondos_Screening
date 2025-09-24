@@ -461,57 +461,110 @@ def main():
         
         st.markdown("---")
         
-        # FILTROS SECTION
-        st.markdown("### 🎯 **Filtros** - *Usa estos controles para filtrar los fondos*")
+        # FILTROS SECTION with improved names and categories
+        st.markdown("### 🎯 **Filtros Inteligentes** - *Define tus criterios de búsqueda*")
         
         # Quick filters in a clear box
         st.markdown('<div class="filter-section">', unsafe_allow_html=True)
         
-        filter_cols = st.columns(6)
+        # First row of filters
+        filter_row1 = st.columns(4)
         
-        with filter_cols[0]:
+        with filter_row1[0]:
             fund_types_available = ['Todos'] + df['fund_type'].dropna().unique().tolist()
             selected_fund_type = st.selectbox(
-                "🏷️ Tipo de Fondo",
+                "💼 **Categoría de Inversión**",
                 options=fund_types_available,
-                help="Filtra por tipo de fondo"
+                help="Tipo de activo del fondo"
             )
         
-        with filter_cols[1]:
+        with filter_row1[1]:
             selected_stars = st.selectbox(
-                "⭐ Rating Mínimo",
-                options=[0, 3, 4, 5],
-                format_func=lambda x: "Todos" if x == 0 else f"≥ {x} estrellas",
-                help="Fondos con este rating o superior"
+                "⭐ **Calidad del Fondo**",
+                options=['Todos', '⭐⭐⭐⭐⭐ Excelente', '⭐⭐⭐⭐ Muy Bueno', '⭐⭐⭐ Bueno', '⭐⭐ Regular', '⭐ Bajo'],
+                help="Calificación Morningstar del fondo"
             )
         
-        with filter_cols[2]:
+        with filter_row1[2]:
+            selected_return_period = st.selectbox(
+                "📊 **Período de Retorno**",
+                options=['1 Año', '3 Años', '5 Años', 'YTD'],
+                help="Período para evaluar retornos"
+            )
+        
+        with filter_row1[3]:
+            return_options = {
+                '1 Año': ['Todos', '> 20% 🚀', '> 15%', '> 10%', '> 5%', '> 0%', '0% a -5%', '< -5% ⚠️'],
+                '3 Años': ['Todos', '> 15% 🚀', '> 10%', '> 5%', '> 0%', '< 0% ⚠️'],
+                '5 Años': ['Todos', '> 10% 🚀', '> 7%', '> 5%', '> 0%', '< 0% ⚠️'],
+                'YTD': ['Todos', '> 15% 🚀', '> 10%', '> 5%', '> 0%', '< 0% ⚠️']
+            }
             selected_return = st.selectbox(
-                "📈 Retorno 1A",
-                options=['Todos', '> 0%', '> 10%', '> 20%', '< 0%'],
-                help="Filtra por retorno anual"
+                f"📈 **Rendimiento ({selected_return_period})**",
+                options=return_options[selected_return_period],
+                help=f"Filtro de retorno para {selected_return_period}"
             )
         
-        with filter_cols[3]:
+        # Second row of filters
+        filter_row2 = st.columns(4)
+        
+        with filter_row2[0]:
             selected_expense = st.selectbox(
-                "💰 Gastos Máximos",
-                options=['Todos', '< 0.5%', '< 1%', '< 1.5%', '< 2%'],
-                help="Fondos con gastos menores a"
+                "💰 **Comisiones Anuales**",
+                options=['Todos', '< 0.25% 💎', '< 0.5%', '< 0.75%', '< 1%', '< 1.5%', '< 2%', '> 2% ⚠️'],
+                help="Gastos corrientes del fondo"
             )
         
-        with filter_cols[4]:
+        with filter_row2[1]:
             selected_size = st.selectbox(
-                "📊 AUM Mínimo",
-                options=['Todos', '> 10M€', '> 50M€', '> 100M€', '> 500M€'],
-                help="Tamaño mínimo del fondo"
+                "💼 **Patrimonio del Fondo**",
+                options=['Todos', '> 1B€ 🏦', '> 500M€', '> 100M€', '> 50M€', '> 10M€', '> 5M€', '< 5M€ ⚠️'],
+                help="Activos bajo gestión (AUM)"
             )
         
-        with filter_cols[5]:
+        with filter_row2[2]:
             selected_esg = st.selectbox(
-                "🌱 ESG Mínimo",
-                options=[0, 3, 4, 5],
-                format_func=lambda x: "Todos" if x == 0 else f"≥ {x} hojas",
-                help="Rating ESG mínimo"
+                "🌍 **Sostenibilidad ESG**",
+                options=['Todos', '🌿🌿🌿🌿🌿 Líder', '🌿🌿🌿🌿 Alto', '🌿🌿🌿 Medio', '🌿🌿 Básico', '🌿 Bajo'],
+                help="Calificación de sostenibilidad"
+            )
+        
+        with filter_row2[3]:
+            selected_volatility = st.selectbox(
+                "📉 **Nivel de Riesgo (Volatilidad)**",
+                options=['Todos', '< 5% 🟢 Bajo', '< 10% 🟡', '< 15% 🟠', '< 20% 🔴', '> 20% ⚫ Muy Alto'],
+                help="Volatilidad anual del fondo"
+            )
+        
+        # Third row of filters
+        filter_row3 = st.columns(4)
+        
+        with filter_row3[0]:
+            selected_sharpe = st.selectbox(
+                "🎯 **Ratio Sharpe (3A)**",
+                options=['Todos', '> 2.0 💎 Excepcional', '> 1.5 Excelente', '> 1.0 Bueno', '> 0.5', '> 0', '< 0 ⚠️'],
+                help="Retorno ajustado al riesgo"
+            )
+        
+        with filter_row3[1]:
+            selected_alpha = st.selectbox(
+                "🔥 **Alpha (3A)**",
+                options=['Todos', '> 5% 🚀', '> 3%', '> 1%', '> 0%', '< 0% ⚠️'],
+                help="Exceso de retorno vs benchmark"
+            )
+        
+        with filter_row3[2]:
+            selected_age = st.selectbox(
+                "⏳ **Antigüedad del Fondo**",
+                options=['Todos', '> 10 años', '> 5 años', '> 3 años', '> 1 año', '< 1 año 🆕'],
+                help="Años desde el inicio del fondo"
+            )
+        
+        with filter_row3[3]:
+            selected_index = st.selectbox(
+                "🤖 **Tipo de Gestión**",
+                options=['Todos', 'Gestión Activa', 'Gestión Pasiva (Indexado)'],
+                help="Estrategia de gestión del fondo"
             )
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -519,56 +572,140 @@ def main():
         # Apply filters
         filtered_df = df.copy()
         
-        # Apply each filter with clear logic
+        # Apply fund type filter
         if selected_fund_type != 'Todos':
             filtered_df = filtered_df[filtered_df['fund_type'] == selected_fund_type]
         
-        if selected_stars > 0 and 'fundStarRating_overall' in filtered_df.columns:
-            filtered_df = filtered_df[
-                (filtered_df['fundStarRating_overall'] >= selected_stars) |
-                filtered_df['fundStarRating_overall'].isna()
-            ]
+        # Apply star rating filter
+        if selected_stars != 'Todos' and 'fundStarRating_overall' in filtered_df.columns:
+            star_map = {
+                '⭐⭐⭐⭐⭐ Excelente': 5,
+                '⭐⭐⭐⭐ Muy Bueno': 4,
+                '⭐⭐⭐ Bueno': 3,
+                '⭐⭐ Regular': 2,
+                '⭐ Bajo': 1
+            }
+            if selected_stars in star_map:
+                filtered_df = filtered_df[
+                    (filtered_df['fundStarRating_overall'] >= star_map[selected_stars]) |
+                    filtered_df['fundStarRating_overall'].isna()
+                ]
         
-        if 'totalReturn_1y' in filtered_df.columns:
-            if selected_return == '> 0%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 0]
-            elif selected_return == '> 10%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 10]
-            elif selected_return == '> 20%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 20]
-            elif selected_return == '< 0%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] < 0]
+        # Apply return filter based on selected period
+        return_col_map = {
+            '1 Año': 'totalReturn_1y',
+            '3 Años': 'totalReturn_3y',
+            '5 Años': 'totalReturn_5y',
+            'YTD': 'totalReturn_ytd'
+        }
         
-        if 'ongoingCharge' in filtered_df.columns:
-            if selected_expense == '< 0.5%':
-                filtered_df = filtered_df[filtered_df['ongoingCharge'] < 0.5]
-            elif selected_expense == '< 1%':
-                filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1]
-            elif selected_expense == '< 1.5%':
-                filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1.5]
-            elif selected_expense == '< 2%':
-                filtered_df = filtered_df[filtered_df['ongoingCharge'] < 2]
+        return_col = return_col_map.get(selected_return_period, 'totalReturn_1y')
+        if return_col in filtered_df.columns and selected_return != 'Todos':
+            return_value = selected_return.split('%')[0].split('>')[-1].split('<')[-1].strip()
+            
+            if '>' in selected_return:
+                threshold = float(return_value)
+                filtered_df = filtered_df[filtered_df[return_col] > threshold]
+            elif '<' in selected_return:
+                threshold = float(return_value)
+                filtered_df = filtered_df[filtered_df[return_col] < threshold]
+            elif 'a' in selected_return:  # Range like "0% a -5%"
+                parts = selected_return.split('a')
+                upper = float(parts[0].replace('%', '').strip())
+                lower = float(parts[1].split('%')[0].strip())
+                filtered_df = filtered_df[(filtered_df[return_col] <= upper) & (filtered_df[return_col] >= lower)]
         
-        if 'fundSize' in filtered_df.columns:
-            if selected_size == '> 10M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 10e6]
-            elif selected_size == '> 50M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 50e6]
-            elif selected_size == '> 100M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 100e6]
-            elif selected_size == '> 500M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 500e6]
+        # Apply expense filter
+        if 'ongoingCharge' in filtered_df.columns and selected_expense != 'Todos':
+            if '>' in selected_expense:
+                filtered_df = filtered_df[filtered_df['ongoingCharge'] > 2]
+            else:
+                expense_value = float(selected_expense.split('%')[0].split('<')[1].strip())
+                filtered_df = filtered_df[filtered_df['ongoingCharge'] < expense_value]
         
-        if selected_esg > 0 and 'sustainabilityRating' in filtered_df.columns:
-            filtered_df = filtered_df[
-                (filtered_df['sustainabilityRating'] >= selected_esg) |
-                filtered_df['sustainabilityRating'].isna()
-            ]
+        # Apply size filter
+        if 'fundSize' in filtered_df.columns and selected_size != 'Todos':
+            size_map = {
+                '> 1B€ 🏦': 1e9,
+                '> 500M€': 500e6,
+                '> 100M€': 100e6,
+                '> 50M€': 50e6,
+                '> 10M€': 10e6,
+                '> 5M€': 5e6,
+                '< 5M€ ⚠️': -5e6
+            }
+            if selected_size in size_map:
+                if '<' in selected_size:
+                    filtered_df = filtered_df[filtered_df['fundSize'] < 5e6]
+                else:
+                    filtered_df = filtered_df[filtered_df['fundSize'] > size_map[selected_size]]
+        
+        # Apply ESG filter
+        if 'sustainabilityRating' in filtered_df.columns and selected_esg != 'Todos':
+            esg_map = {
+                '🌿🌿🌿🌿🌿 Líder': 5,
+                '🌿🌿🌿🌿 Alto': 4,
+                '🌿🌿🌿 Medio': 3,
+                '🌿🌿 Básico': 2,
+                '🌿 Bajo': 1
+            }
+            if selected_esg in esg_map:
+                filtered_df = filtered_df[
+                    (filtered_df['sustainabilityRating'] >= esg_map[selected_esg]) |
+                    filtered_df['sustainabilityRating'].isna()
+                ]
+        
+        # Apply volatility filter
+        if 'standardDeviation_3yMonthly' in filtered_df.columns and selected_volatility != 'Todos':
+            vol_value = selected_volatility.split('%')[0].split('>')[-1].split('<')[-1].strip()
+            if '>' in selected_volatility:
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] > float(vol_value)]
+            elif '<' in selected_volatility:
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < float(vol_value)]
+        
+        # Apply Sharpe filter
+        if 'sharpeRatio_3yMonthly' in filtered_df.columns and selected_sharpe != 'Todos':
+            sharpe_value = selected_sharpe.split()[1] if '>' in selected_sharpe else selected_sharpe.split()[0]
+            if '>' in selected_sharpe:
+                threshold = float(sharpe_value)
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > threshold]
+            elif '<' in selected_sharpe:
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] < 0]
+        
+        # Apply Alpha filter
+        if 'alpha_3yMonthly' in filtered_df.columns and selected_alpha != 'Todos':
+            alpha_value = selected_alpha.split('%')[0].split('>')[-1].split('<')[-1].strip()
+            if '>' in selected_alpha:
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] > float(alpha_value)]
+            elif '<' in selected_alpha:
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] < float(alpha_value)]
+        
+        # Apply age filter
+        if 'fund_age_years' in filtered_df.columns and selected_age != 'Todos':
+            age_map = {
+                '> 10 años': 10,
+                '> 5 años': 5,
+                '> 3 años': 3,
+                '> 1 año': 1,
+                '< 1 año 🆕': -1
+            }
+            if selected_age in age_map:
+                if '<' in selected_age:
+                    filtered_df = filtered_df[filtered_df['fund_age_years'] < 1]
+                else:
+                    filtered_df = filtered_df[filtered_df['fund_age_years'] > age_map[selected_age]]
+        
+        # Apply management type filter
+        if 'isIndexFund' in filtered_df.columns and selected_index != 'Todos':
+            if selected_index == 'Gestión Pasiva (Indexado)':
+                filtered_df = filtered_df[filtered_df['isIndexFund'] == True]
+            else:
+                filtered_df = filtered_df[filtered_df['isIndexFund'] == False]
         
         st.markdown("---")
         
         # SORTING SECTION
-        st.markdown("### 📊 **Ordenamiento** - *Elige cómo ordenar los resultados*")
+        st.markdown("### 📊 **Ordenamiento de Resultados**")
         
         sort_cols = st.columns([3, 2, 2])
         
@@ -623,7 +760,7 @@ def main():
         st.markdown("---")
         
         # RESULTS SECTION
-        st.markdown(f"### 📋 **Resultados** - *Mostrando {min(num_results, len(sorted_df))} de {len(filtered_df)} fondos filtrados*")
+        st.markdown(f"### 📋 **Resultados del Screening** - *Top {min(num_results, len(sorted_df))} fondos*")
         
         # Prepare display dataframe
         display_cols = [col for col in selected_columns if col in sorted_df.columns]
@@ -734,14 +871,16 @@ def main():
             st.warning("No hay columnas seleccionadas para mostrar")
     
     with main_tabs[1]:  # COMPARATOR TAB
-        st.markdown("### ⚖️ **Comparador y Análisis**")
+        st.markdown("### ⚖️ **Comparador Avanzado de Fondos**")
         
         # Fund selection
         if len(filtered_df) > 0:
+            st.info("💡 Los fondos disponibles para comparar están basados en los filtros aplicados en el Screener")
+            
             fund_names = sorted(filtered_df['name'].dropna().unique())
             
             selected_funds = st.multiselect(
-                "📌 Selecciona fondos para comparar (máximo 10)",
+                "📌 **Selecciona fondos para análisis comparativo** (máximo 10)",
                 options=fund_names,
                 max_selections=10,
                 help="Elige hasta 10 fondos para comparación detallada"
@@ -751,16 +890,16 @@ def main():
                 comparison_df = filtered_df[filtered_df['name'].isin(selected_funds)]
                 
                 # Heatmap of returns
-                st.markdown("#### 🔥 **Mapa de Calor - Retornos**")
+                st.markdown("#### 🔥 **Mapa de Calor - Rendimientos Históricos**")
                 fig = create_performance_heatmap(filtered_df, selected_funds)
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Comparison table
-                st.markdown("#### 📊 **Tabla Comparativa**")
+                st.markdown("#### 📊 **Tabla Comparativa Detallada**")
                 
                 # Select metrics to compare
                 categories_to_compare = st.multiselect(
-                    "Selecciona categorías de métricas",
+                    "Selecciona categorías de métricas para comparar",
                     options=list(COLUMN_DEFINITIONS.keys()),
                     default=['Retornos', 'Riesgo Ajustado', 'Costes', 'Ratings']
                 )
@@ -785,7 +924,7 @@ def main():
                 
                 # Scatter plot configuration
                 st.markdown("---")
-                st.markdown("#### 📈 **Gráfico de Dispersión Configurable**")
+                st.markdown("#### 📈 **Análisis Visual Personalizado**")
                 
                 # Get numeric columns for scatter plot
                 numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
@@ -794,26 +933,29 @@ def main():
                 
                 with col1:
                     x_axis = st.selectbox(
-                        "Eje X",
+                        "📊 Eje X (Horizontal)",
                         options=numeric_cols,
                         index=numeric_cols.index('standardDeviation_3yMonthly') 
-                            if 'standardDeviation_3yMonthly' in numeric_cols else 0
+                            if 'standardDeviation_3yMonthly' in numeric_cols else 0,
+                        help="Variable para el eje horizontal"
                     )
                 
                 with col2:
                     y_axis = st.selectbox(
-                        "Eje Y",
+                        "📈 Eje Y (Vertical)",
                         options=numeric_cols,
                         index=numeric_cols.index('totalReturn_3y') 
-                            if 'totalReturn_3y' in numeric_cols else 0
+                            if 'totalReturn_3y' in numeric_cols else 0,
+                        help="Variable para el eje vertical"
                     )
                 
                 with col3:
                     size_var = st.selectbox(
-                        "Tamaño (opcional)",
+                        "⭕ Tamaño de burbuja",
                         options=['None'] + numeric_cols,
                         index=numeric_cols.index('fundSize') + 1 
-                            if 'fundSize' in numeric_cols else 0
+                            if 'fundSize' in numeric_cols else 0,
+                        help="Variable para determinar el tamaño"
                     )
                 
                 # Create scatter plot
@@ -834,7 +976,7 @@ def main():
                         color='fund_type',
                         size=size_col if size_col else None,
                         hover_data=['name', 'firmName', 'morningstarCategory'],
-                        title=f"{y_axis} vs {x_axis}",
+                        title=f"Análisis: {y_axis} vs {x_axis}",
                         color_discrete_map={
                             'Renta Variable': '#3b82f6',
                             'Renta Fija': '#10b981',
@@ -882,10 +1024,10 @@ def main():
             else:
                 st.info("👆 Selecciona fondos arriba para comenzar la comparación")
         else:
-            st.warning("Aplica filtros primero para ver fondos disponibles")
+            st.warning("⚠️ Aplica filtros primero en la pestaña SCREENER para ver fondos disponibles")
     
     with main_tabs[2]:  # GUIDE TAB
-        st.markdown("### 📖 **Guía de Uso**")
+        st.markdown("### 📖 **Guía Completa de Uso**")
         
         col1, col2 = st.columns(2)
         
@@ -894,38 +1036,55 @@ def main():
             #### 🔍 **Cómo usar el Screener**
             
             1. **Configura la Vista**: Elige qué columnas quieres ver
-            2. **Aplica Filtros**: Usa los 6 filtros para refinar
-            3. **Ordena Resultados**: Selecciona columna y dirección
-            4. **Exporta**: Descarga los resultados en CSV
+            2. **Aplica Filtros Inteligentes**: 
+               - Categoría de inversión
+               - Calidad del fondo
+               - Rendimientos por período
+               - Comisiones y gastos
+               - Patrimonio del fondo
+               - Sostenibilidad ESG
+               - Nivel de riesgo
+               - Métricas avanzadas (Sharpe, Alpha)
+            3. **Ordena Resultados**: Por cualquier métrica
+            4. **Exporta**: Descarga en formato CSV
             
-            #### 📊 **Métricas Clave**
+            #### 📊 **Métricas Clave Explicadas**
             
-            - **Retorno 1A/3A/5A**: Rendimiento anualizado
-            - **Sharpe Ratio**: Retorno ajustado al riesgo (>1 bueno)
-            - **Alpha**: Exceso de retorno vs mercado
-            - **Beta**: Sensibilidad al mercado (1 = mercado)
-            - **Volatilidad**: Desviación estándar de retornos
-            - **Gastos**: Costes anuales del fondo
+            - **Retorno**: Rendimiento anualizado del período
+            - **Sharpe Ratio**: Retorno ajustado al riesgo (>1 es bueno, >2 excelente)
+            - **Alpha**: Exceso de retorno vs benchmark (positivo = supera al mercado)
+            - **Beta**: Sensibilidad al mercado (1 = igual que el mercado)
+            - **Volatilidad**: Desviación estándar de retornos (menor = más estable)
+            - **Gastos**: Costes anuales totales del fondo
+            - **ESG**: Calificación de sostenibilidad (1-5 hojas)
             """)
         
         with col2:
             st.markdown("""
-            #### ⚡ **Filtros Rápidos**
+            #### ⚡ **Filtros Avanzados**
             
-            - **Tipo**: RV, RF, Alternativo, Mixto
-            - **Rating**: Calificación Morningstar (1-5 ⭐)
-            - **Retorno 1A**: Filtro por rendimiento anual
-            - **Gastos**: Máximo coste anual aceptable
-            - **AUM**: Tamaño mínimo del fondo
-            - **ESG**: Sostenibilidad (1-5 🌱)
+            **Rendimiento por Período:**
+            - Analiza retornos a 1, 3, 5 años o YTD
+            - Múltiples rangos de rendimiento
             
-            #### 💡 **Consejos Pro**
+            **Calidad y Riesgo:**
+            - Rating Morningstar (1-5 estrellas)
+            - Volatilidad en rangos específicos
+            - Sharpe Ratio para retorno ajustado
             
-            - Busca Sharpe > 1 y Alpha positivo
-            - Gastos < 1.5% para RV, < 0.5% para RF
-            - AUM > 50M€ para mejor liquidez
-            - Compara fondos similares (misma categoría)
-            - Revisa retornos a 3-5 años, no solo 1 año
+            **Costes y Tamaño:**
+            - Comisiones desde ultra-bajas (<0.25%) hasta altas
+            - Patrimonio desde pequeños hasta mega fondos (>1B€)
+            
+            #### 💡 **Consejos Profesionales**
+            
+            - **Para conservadores**: Busca Volatilidad <10%, Sharpe >1
+            - **Para agresivos**: Alpha >3%, acepta mayor volatilidad
+            - **Fondos eficientes**: Gastos <1% para RV, <0.5% para RF
+            - **Liquidez**: Prefiere AUM >50M€
+            - **Sostenibles**: ESG ≥4 hojas
+            - **Track record**: Antigüedad >3 años
+            - **Comparación justa**: Compara fondos de la misma categoría
             """)
     
     # Footer
@@ -935,7 +1094,7 @@ def main():
                     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); 
                     border-radius: 16px; margin-top: 20px;'>
             <p style='color: #8b949e; font-size: 0.9em;'>
-                44,341 fondos | 96 métricas | Datos actualizados
+                44,341 fondos | 96 métricas | Análisis profesional
             </p>
             <p style='color: #8b949e; margin-top: 10px;'>
                 Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' 
