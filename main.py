@@ -209,7 +209,7 @@ st.markdown("""
 # Load data with caching
 @st.cache_data
 def load_data():
-    df = pd.read_csv('Fondos_España.csv')
+    df = pd.read_csv('Fondos_España.csv', index_col=0)
     
     # Clean column names (remove brackets)
     df.columns = df.columns.str.replace(r'\[', '_', regex=True).str.replace(r'\]', '', regex=True)
