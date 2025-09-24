@@ -5,16 +5,17 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 from datetime import datetime
+import plotly.figure_factory as ff
 
 # Page config with dark theme
 st.set_page_config(
-    page_title="Analizador de Fondos Españoles",
+    page_title="Analizador Avanzado de Fondos BQuant",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Hide sidebar
+# Hide sidebar and custom CSS
 st.markdown("""
 <style>
     /* Hide sidebar */
@@ -30,12 +31,18 @@ st.markdown("""
     
     /* Metric cards styling */
     div[data-testid="metric-container"] {
-        background-color: #1a1f2e;
+        background: linear-gradient(135deg, #1a1f2e 0%, #252b3b 100%);
         border: 1px solid #2d3748;
         padding: 15px;
-        border-radius: 8px;
+        border-radius: 12px;
         margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+    }
+    
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
     }
     
     /* Headers */
@@ -45,174 +52,251 @@ st.markdown("""
     
     /* Dataframe styling */
     .dataframe {
-        font-size: 14px;
+        font-size: 13px;
     }
     
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 12px;
+        background: linear-gradient(90deg, #1a1f2e 0%, #252b3b 100%);
+        padding: 10px;
+        border-radius: 12px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        background-color: #1a1f2e;
-        border-radius: 8px;
-        padding: 8px 16px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        transition: all 0.3s;
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: #2d3748;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
     
     /* Buttons */
     .stButton > button {
-        background-color: #1a1f2e;
+        background: linear-gradient(135deg, #1a1f2e 0%, #252b3b 100%);
         border: 1px solid #2d3748;
         color: #fafafa;
-        border-radius: 8px;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
         transition: all 0.3s;
     }
     
     .stButton > button:hover {
-        background-color: #2d3748;
+        background: linear-gradient(135deg, #252b3b 0%, #2d3748 100%);
         border-color: #4a5568;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
     
     /* Select boxes and inputs */
     .stSelectbox > div > div, .stMultiSelect > div > div {
         background-color: #1a1f2e;
         border-color: #2d3748;
-    }
-    
-    /* Alert boxes */
-    .stAlert {
-        background-color: #1a1f2e;
-        border: 1px solid #2d3748;
-        border-radius: 8px;
+        border-radius: 10px;
     }
     
     /* Newsletter banner */
     .newsletter-banner {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px;
+        border-radius: 16px;
         margin: 20px 0;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        animation: pulse 2s infinite;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        animation: glow 3s ease-in-out infinite;
+        position: relative;
+        overflow: hidden;
     }
     
-    @keyframes pulse {
+    .newsletter-banner::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            45deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent
+        );
+        transform: rotate(45deg);
+        animation: shine 3s infinite;
+    }
+    
+    @keyframes shine {
         0% {
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-        50% {
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.6);
+            transform: translateX(-100%) translateY(-100%) rotate(45deg);
         }
         100% {
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: translateX(100%) translateY(100%) rotate(45deg);
+        }
+    }
+    
+    @keyframes glow {
+        0%, 100% {
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        50% {
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.6);
         }
     }
     
     .newsletter-banner h3 {
         color: white !important;
         margin: 0 0 10px 0;
-        font-size: 1.4em;
+        font-size: 1.5em;
+        font-weight: 700;
     }
     
     .newsletter-banner p {
         color: rgba(255, 255, 255, 0.95);
-        margin: 0 0 15px 0;
+        margin: 0 0 20px 0;
         font-size: 1.1em;
     }
     
     .newsletter-button {
-        background-color: white;
+        background: white;
         color: #667eea;
-        padding: 10px 30px;
-        border-radius: 25px;
+        padding: 12px 35px;
+        border-radius: 30px;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
         display: inline-block;
-        transition: transform 0.3s;
+        transition: all 0.3s;
         margin: 0 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     
     .newsletter-button:hover {
-        transform: scale(1.05);
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         text-decoration: none;
-        color: #764ba2;
+        background: linear-gradient(135deg, #f0f0f0 0%, white 100%);
     }
     
     /* Survivorship bias banner */
     .survivorship-banner {
         background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px;
+        border-radius: 16px;
         margin: 20px 0;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .survivorship-banner::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            45deg,
+            transparent,
+            rgba(255, 255, 255, 0.1),
+            transparent
+        );
+        transform: rotate(45deg);
+        animation: shine 3s infinite;
     }
     
     .survivorship-button {
-        background-color: white;
+        background: white;
         color: #ef4444;
-        padding: 10px 30px;
-        border-radius: 25px;
+        padding: 12px 35px;
+        border-radius: 30px;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
         display: inline-block;
-        transition: transform 0.3s;
+        transition: all 0.3s;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     
     .survivorship-button:hover {
-        transform: scale(1.05);
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         text-decoration: none;
-        color: #dc2626;
+        background: linear-gradient(135deg, #f0f0f0 0%, white 100%);
     }
     
     /* Guide section */
     .guide-section {
-        background-color: #1a1f2e;
+        background: linear-gradient(135deg, #1a1f2e 0%, #252b3b 100%);
         border: 1px solid #2d3748;
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px;
+        border-radius: 16px;
         margin: 20px 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     
     .metric-card {
-        background-color: #252b3b;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 10px 0;
-        border-left: 3px solid #667eea;
+        background: linear-gradient(135deg, #252b3b 0%, #2d3748 100%);
+        padding: 18px;
+        border-radius: 12px;
+        margin: 12px 0;
+        border-left: 4px solid;
+        transition: all 0.3s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .metric-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    .metric-card:nth-child(3n+1) {
+        border-left-color: #667eea;
+    }
+    
+    .metric-card:nth-child(3n+2) {
+        border-left-color: #764ba2;
+    }
+    
+    .metric-card:nth-child(3n) {
+        border-left-color: #f59e0b;
     }
     
     .metric-title {
-        color: #667eea;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    
-    /* Creator credit */
-    .creator-credit {
-        text-align: center;
-        color: #8b949e;
-        padding: 10px;
-        border-top: 1px solid #2d3748;
-        margin-top: 20px;
-    }
-    
-    .creator-credit a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
+        margin-bottom: 8px;
+        font-size: 1.1em;
     }
     
     /* Expandable sections */
     .stExpander {
-        background-color: #1a1f2e;
+        background: linear-gradient(135deg, #1a1f2e 0%, #252b3b 100%);
         border: 1px solid #2d3748;
-        border-radius: 8px;
+        border-radius: 12px;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #1a1f2e;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -260,88 +344,184 @@ def format_number(value, decimals=2, suffix=''):
     else:
         return f"{value:.{decimals}f}{suffix}"
 
-def create_performance_chart(df, fund_names):
-    """Create performance comparison chart"""
-    periods = ['totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m', 
-               'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y']
-    period_labels = ['1M', '3M', '6M', '1A', '3A', '5A']
+def create_beautiful_histogram(data, title, x_label, color='#667eea'):
+    """Create beautiful histogram with KDE overlay"""
+    # Remove NaN values
+    clean_data = data.dropna()
     
+    if len(clean_data) == 0:
+        return go.Figure()
+    
+    # Create histogram
     fig = go.Figure()
     
-    for fund_name in fund_names:
-        fund_data = df[df['name'] == fund_name].iloc[0]
-        returns = [fund_data.get(p, np.nan) for p in periods]
-        
-        fig.add_trace(go.Bar(
-            name=fund_name[:30] + '...' if len(fund_name) > 30 else fund_name,
-            x=period_labels,
-            y=returns,
-            text=[f"{r:.2f}%" if not pd.isna(r) else "N/D" for r in returns],
-            textposition='outside',
-            hovertemplate='<b>%{x}</b><br>Retorno: %{y:.2f}%<extra></extra>'
-        ))
+    # Add histogram
+    fig.add_trace(go.Histogram(
+        x=clean_data,
+        nbinsx=50,
+        name='Distribución',
+        marker=dict(
+            color=color,
+            line=dict(color='#2d3748', width=0.5)
+        ),
+        opacity=0.7,
+        histnorm='probability density'
+    ))
+    
+    # Calculate KDE
+    kde_x = np.linspace(clean_data.min(), clean_data.max(), 200)
+    from scipy import stats
+    kde = stats.gaussian_kde(clean_data)
+    kde_y = kde(kde_x)
+    
+    # Add KDE line
+    fig.add_trace(go.Scatter(
+        x=kde_x,
+        y=kde_y,
+        mode='lines',
+        name='Densidad',
+        line=dict(color='#fbbf24', width=3),
+        fill='tozeroy',
+        fillcolor='rgba(251, 191, 36, 0.1)'
+    ))
+    
+    # Calculate statistics
+    mean_val = clean_data.mean()
+    median_val = clean_data.median()
+    
+    # Add vertical lines for mean and median
+    fig.add_vline(x=mean_val, line_width=2, line_dash="dash", 
+                  line_color="#ef4444", annotation_text=f"Media: {mean_val:.2f}")
+    fig.add_vline(x=median_val, line_width=2, line_dash="dash", 
+                  line_color="#10b981", annotation_text=f"Mediana: {median_val:.2f}")
     
     fig.update_layout(
-        title="Comparación de Rendimiento",
-        xaxis_title="Período",
-        yaxis_title="Retorno (%)",
-        barmode='group',
+        title=title,
+        xaxis_title=x_label,
+        yaxis_title="Densidad",
         paper_bgcolor='#0e1117',
         plot_bgcolor='#1a1f2e',
         font=dict(color='#fafafa'),
         height=400,
         showlegend=True,
         legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
+            bgcolor='rgba(26, 31, 46, 0.8)',
+            bordercolor='#2d3748',
+            borderwidth=1
+        ),
+        xaxis=dict(
+            gridcolor='#2d3748',
+            zerolinecolor='#2d3748'
+        ),
+        yaxis=dict(
+            gridcolor='#2d3748',
+            zerolinecolor='#2d3748'
         )
     )
     
     return fig
 
-def create_risk_return_scatter(filtered_df):
-    """Create risk-return scatter plot"""
-    fig = px.scatter(
-        filtered_df.dropna(subset=['standardDeviation_3yMonthly', 'totalReturn_3y']),
-        x='standardDeviation_3yMonthly',
-        y='totalReturn_3y',
-        color='fund_type',
-        size='fundSize',
-        hover_data=['name', 'firmName', 'morningstarCategory'],
-        labels={
-            'standardDeviation_3yMonthly': 'Riesgo (Desv. Est. 3A)',
-            'totalReturn_3y': 'Retorno 3A (%)',
-            'fund_type': 'Tipo de Fondo'
-        },
-        title="Perfil Riesgo-Retorno (3 Años)",
-        color_discrete_map={
-            'Renta Variable': '#3b82f6',
-            'Renta Fija': '#10b981',
-            'Alternativo': '#f59e0b',
-            'Mixto/Otro': '#8b5cf6'
-        }
-    )
+def create_performance_heatmap(df, fund_names):
+    """Create a heatmap of returns across different time periods"""
+    periods = ['totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m', 
+               'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 'totalReturn_10y']
+    period_labels = ['1M', '3M', '6M', '1A', '3A', '5A', '10A']
+    
+    # Create matrix for heatmap
+    matrix = []
+    fund_labels = []
+    
+    for fund_name in fund_names[:10]:  # Limit to 10 funds for visibility
+        fund_data = df[df['name'] == fund_name].iloc[0]
+        returns = [fund_data.get(p, np.nan) for p in periods]
+        matrix.append(returns)
+        fund_labels.append(fund_name[:30] + '...' if len(fund_name) > 30 else fund_name)
+    
+    # Create heatmap
+    fig = go.Figure(data=go.Heatmap(
+        z=matrix,
+        x=period_labels,
+        y=fund_labels,
+        colorscale=[
+            [0.0, '#ef4444'],
+            [0.25, '#f59e0b'],
+            [0.5, '#fbbf24'],
+            [0.75, '#84cc16'],
+            [1.0, '#10b981']
+        ],
+        text=[[f"{val:.1f}%" if not pd.isna(val) else "N/D" for val in row] for row in matrix],
+        texttemplate="%{text}",
+        textfont={"size": 10},
+        colorbar=dict(
+            title="Retorno (%)",
+            titleside="right",
+            tickmode="linear",
+            tick0=-50,
+            dtick=25,
+            thickness=15,
+            len=0.7
+        )
+    ))
     
     fig.update_layout(
+        title="Mapa de Calor - Retornos por Período",
         paper_bgcolor='#0e1117',
         plot_bgcolor='#1a1f2e',
         font=dict(color='#fafafa'),
-        height=500,
-        xaxis=dict(gridcolor='#2d3748', zeroline=False),
-        yaxis=dict(gridcolor='#2d3748', zeroline=False)
+        height=400,
+        xaxis=dict(title="Período", side="bottom"),
+        yaxis=dict(title="Fondo", autorange="reversed")
+    )
+    
+    return fig
+
+def create_risk_metrics_radar(fund_data, fund_name):
+    """Create a comprehensive risk metrics radar chart"""
+    metrics = {
+        'Volatilidad 1A': fund_data.get('standardDeviation_1yMonthly', 0),
+        'Volatilidad 3A': fund_data.get('standardDeviation_3yMonthly', 0),
+        'Volatilidad 5A': fund_data.get('standardDeviation_5yMonthly', 0),
+        'Beta 1A': abs(fund_data.get('beta_1yMonthly', 0)) * 10,  # Scale for visibility
+        'Beta 3A': abs(fund_data.get('beta_3yMonthly', 0)) * 10,
+        'Gastos': fund_data.get('ongoingCharge', 0) * 5,  # Scale for visibility
+    }
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=list(metrics.values()),
+        theta=list(metrics.keys()),
+        fill='toself',
+        name=fund_name[:30] + '...' if len(fund_name) > 30 else fund_name,
+        line_color='#667eea'
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                gridcolor='#2d3748',
+                range=[0, max(metrics.values()) * 1.2]
+            ),
+            bgcolor='#1a1f2e'
+        ),
+        showlegend=True,
+        paper_bgcolor='#0e1117',
+        font=dict(color='#fafafa'),
+        title=f"Perfil de Riesgo - {fund_name[:40]}",
+        height=400
     )
     
     return fig
 
 # Main app
 def main():
-    # Title with custom styling
+    # Title
     st.markdown("""
-        <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0;'>
-            📊 Analizador de Fondos Españoles
+        <h1 style='text-align: center; color: #fafafa; padding: 25px 0; margin-bottom: 0; 
+                   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                   border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
+            📊 Analizador Avanzado de Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -349,7 +529,6 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Newsletter banner
         st.markdown("""
             <div class="newsletter-banner">
                 <h3>📈 ¡Únete a Nuestra Comunidad!</h3>
@@ -361,7 +540,6 @@ def main():
         """, unsafe_allow_html=True)
     
     with col2:
-        # Survivorship bias banner
         st.markdown("""
             <div class="survivorship-banner">
                 <h3>⚠️ Sesgo de Supervivencia</h3>
@@ -376,178 +554,327 @@ def main():
     df = load_data()
     
     # Guide section
-    with st.expander("📖 **GUÍA DE USO Y MÉTRICAS** - Click para expandir", expanded=False):
+    with st.expander("📖 **GUÍA COMPLETA Y MÉTRICAS AVANZADAS** - Click para expandir", expanded=False):
         st.markdown("""
         ### 🎯 **Cómo Usar Esta Herramienta**
         
         Esta aplicación analiza más de **44,000 fondos de inversión españoles** con 96 métricas diferentes. 
-        Puedes filtrar, analizar y comparar fondos para tomar mejores decisiones de inversión.
-        
-        ---
-        
-        ### 📊 **Métricas Principales Explicadas**
         """)
         
-        col1, col2, col3 = st.columns(3)
+        tab1_guide, tab2_guide, tab3_guide = st.tabs(["📊 Métricas Básicas", "📈 Métricas Avanzadas", "🎓 Consejos Pro"])
         
-        with col1:
+        with tab1_guide:
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("""
+                <div class="metric-card">
+                    <div class="metric-title">📈 Retornos</div>
+                    <div>• <b>1A, 3A, 5A, 10A:</b> Rendimiento anualizado<br>
+                    • <b>YTD:</b> Retorno año actual<br>
+                    • <b>QTD:</b> Retorno trimestre actual</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">💰 Costes</div>
+                    <div>• <b>Gastos Corrientes:</b> Coste anual total<br>
+                    • <b>Comisión Entrada:</b> Al comprar<br>
+                    • <b>Comisión Salida:</b> Al vender</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown("""
+                <div class="metric-card">
+                    <div class="metric-title">📊 Riesgo</div>
+                    <div>• <b>Volatilidad:</b> Desviación estándar<br>
+                    • <b>Beta:</b> Sensibilidad al mercado<br>
+                    • <b>R²:</b> Correlación con benchmark</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">⭐ Calificaciones</div>
+                    <div>• <b>Estrellas:</b> Rating Morningstar (1-5)<br>
+                    • <b>ESG:</b> Sostenibilidad (1-5)<br>
+                    • <b>Medalist:</b> Rating analistas</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown("""
+                <div class="metric-card">
+                    <div class="metric-title">🎯 Rendimiento Ajustado</div>
+                    <div>• <b>Sharpe:</b> Retorno/Riesgo<br>
+                    • <b>Alpha:</b> Valor añadido gestor<br>
+                    • <b>Info Ratio:</b> Consistencia</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">🏢 Características</div>
+                    <div>• <b>AUM:</b> Patrimonio gestionado<br>
+                    • <b>Antigüedad:</b> Años del fondo<br>
+                    • <b>Gestor:</b> Tenure del equipo</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        with tab2_guide:
             st.markdown("""
-            <div class="metric-card">
-                <div class="metric-title">📈 Retorno (1A, 3A, 5A)</div>
-                <div>Rendimiento total del fondo en diferentes períodos. Un retorno del 10% anual significa que 100€ se convierten en 110€.</div>
-            </div>
+            ### 🔬 **Métricas Avanzadas Explicadas**
             
-            <div class="metric-card">
-                <div class="metric-title">📊 Ratio Sharpe</div>
-                <div>Mide el retorno ajustado al riesgo. Mayor es mejor. Un Sharpe > 1 es bueno, > 2 es excelente.</div>
-            </div>
+            | Métrica | Qué Mide | Interpretación |
+            |---------|----------|----------------|
+            | **Alpha** | Exceso de retorno vs benchmark | > 0 = Supera al mercado |
+            | **Beta** | Sensibilidad al mercado | 1 = Se mueve igual, >1 = Más volátil |
+            | **R-Squared** | % explicado por el mercado | >75 = Alta correlación |
+            | **Information Ratio** | Consistencia del alpha | > 0.5 = Bueno, > 1 = Excelente |
+            | **Sharpe Ratio** | Retorno por unidad de riesgo | > 1 = Bueno, > 2 = Muy bueno |
+            | **Percentil Categoría** | Posición vs competidores | < 25 = Top quartil |
+            | **Style Box** | Estilo de inversión | Define estrategia del fondo |
             
-            <div class="metric-card">
-                <div class="metric-title">🎯 Alpha</div>
-                <div>Retorno extra vs el mercado. Alpha positivo indica que el gestor añade valor.</div>
+            ### 📊 **Periodos de Análisis Disponibles**
+            - **Corto Plazo:** 1D, 1S, 1M, 2M, 3M, 6M, 9M
+            - **Medio Plazo:** 1A, 2A, 3A, 4A, 5A
+            - **Largo Plazo:** 6A, 7A, 8A, 9A, 10A, 15A, 20A
+            """)
+        
+        with tab3_guide:
+            st.markdown("""
+            ### 💡 **Consejos Profesionales**
+            
+            #### Para Principiantes:
+            1. **Empieza con fondos 4-5 estrellas** con más de 5 años de historia
+            2. **Gastos < 1.5%** para RV, **< 0.5%** para RF
+            3. **AUM > 50M€** para mejor liquidez
+            4. **Sharpe > 0.5** indica buen ratio riesgo/retorno
+            
+            #### Para Inversores Avanzados:
+            1. **Analiza el Alpha a 3-5 años** para ver consistencia del gestor
+            2. **R² < 70** puede indicar gestión activa genuina
+            3. **Information Ratio > 0.5** sugiere habilidad del gestor
+            4. **Compara percentiles** dentro de la categoría, no entre categorías
+            
+            #### Red Flags 🚩:
+            - Volatilidad extrema sin retorno acorde
+            - Gastos > 2.5% sin justificación clara
+            - Alta rotación del equipo gestor
+            - AUM en declive constante
+            - Alpha negativo persistente
+            
+            <div style='background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); 
+                        padding: 15px; border-radius: 12px; margin-top: 20px;'>
+                <strong>⚠️ Sesgo de Supervivencia:</strong> Los fondos cerrados no aparecen aquí. 
+                <a href='https://fondossupervivientes.streamlit.app/' target='_blank' 
+                   style='color: #fbbf24; font-weight: bold;'>
+                    Conoce más sobre este importante sesgo →
+                </a>
             </div>
             """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div class="metric-card">
-                <div class="metric-title">📉 Volatilidad (Desv. Est.)</div>
-                <div>Mide el riesgo. Mayor volatilidad = mayores fluctuaciones. RV suele tener 15-20%, RF 3-5%.</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-title">💰 Gastos Corrientes</div>
-                <div>Coste anual del fondo. Incluye comisión de gestión. Menor es mejor (típico: 0.5-2%).</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-title">📊 Beta</div>
-                <div>Sensibilidad al mercado. Beta = 1 se mueve igual que el mercado, > 1 más volátil.</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown("""
-            <div class="metric-card">
-                <div class="metric-title">⭐ Rating Estrellas</div>
-                <div>Calificación Morningstar (1-5). Basada en rendimiento ajustado al riesgo vs categoría.</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-title">🌱 Rating ESG</div>
-                <div>Sostenibilidad del fondo (1-5). Evalúa criterios ambientales, sociales y de gobernanza.</div>
-            </div>
-            
-            <div class="metric-card">
-                <div class="metric-title">💼 AUM</div>
-                <div>Patrimonio bajo gestión. Fondos grandes (>100M€) suelen ser más líquidos y estables.</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        ---
-        
-        ### 🔍 **Consejos de Uso**
-        
-        1. **Para principiantes**: Busca fondos con rating ⭐⭐⭐⭐ o más, gastos < 1.5%, y Sharpe > 0.5
-        2. **Para comparar**: Usa la pestaña "Comparador" y selecciona hasta 5 fondos similares
-        3. **Para screening**: Filtra por tu perfil de riesgo y ordena por la métrica que más te interese
-        4. **Importante**: Rendimientos pasados no garantizan resultados futuros
-        
-        <div style='background-color: #2d3748; padding: 15px; border-radius: 8px; margin-top: 20px;'>
-            <strong>⚠️ Nota sobre el Sesgo de Supervivencia:</strong> Esta base de datos solo incluye fondos activos. 
-            Los fondos cerrados o fusionados no aparecen, lo que puede hacer que los retornos promedio parezcan mejores. 
-            <a href='https://fondossupervivientes.streamlit.app/' target='_blank' style='color: #f59e0b;'>
-                Aprende más sobre este sesgo aquí →
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Filters Section
-    st.markdown("### 🎯 Filtros de Búsqueda")
+    # Advanced Filters Section
+    st.markdown("### 🎯 **Filtros Avanzados de Búsqueda**")
     
-    # Create filter columns
-    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
+    # Create filter tabs
+    filter_tabs = st.tabs(["🏷️ Básicos", "📊 Rendimiento", "⚡ Riesgo", "💎 Calidad", "🌱 ESG"])
     
-    with filter_col1:
-        # Fund Type Filter
-        fund_types = df['fund_type'].dropna().unique()
-        selected_fund_types = st.multiselect(
-            "Tipo de Fondo",
-            options=fund_types,
-            default=fund_types
-        )
+    with filter_tabs[0]:  # Basic filters
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Data Quality Filter
-        min_quality = st.slider(
-            "Calidad de Datos Mínima",
-            min_value=0,
-            max_value=5,
-            value=3,
-            help="Mayor calidad = datos más completos"
-        )
-    
-    with filter_col2:
-        # Category Filter
-        categories = df['morningstarCategory'].dropna().unique()
-        selected_categories = st.multiselect(
-            "Categoría Morningstar",
-            options=sorted(categories),
-            default=None,
-            placeholder="Todas las categorías"
-        )
+        with col1:
+            fund_types = df['fund_type'].dropna().unique()
+            selected_fund_types = st.multiselect(
+                "Tipo de Fondo",
+                options=fund_types,
+                default=fund_types
+            )
         
-        # Star Rating Filter
-        min_stars = st.selectbox(
-            "Rating Mínimo ⭐",
-            options=[1, 2, 3, 4, 5],
-            index=0
-        )
-    
-    with filter_col3:
-        # Size Filter
-        min_size = st.number_input(
-            "Tamaño Mín (M€)",
-            min_value=0.0,
-            value=0.0,
-            step=10.0
-        )
+        with col2:
+            categories = df['morningstarCategory'].dropna().unique()
+            selected_categories = st.multiselect(
+                "Categoría Morningstar",
+                options=sorted(categories),
+                placeholder="Todas"
+            )
         
-        max_size = st.number_input(
-            "Tamaño Máx (M€)",
-            min_value=0.0,
-            value=10000.0,
-            step=100.0
-        )
-    
-    with filter_col4:
-        # Performance Filters
-        return_1y_min = st.number_input(
-            "Retorno 1A Mín (%)",
-            value=-50.0,
-            step=1.0
-        )
+        with col3:
+            domiciles = df['domicile'].dropna().unique()
+            selected_domiciles = st.multiselect(
+                "Domicilio",
+                options=sorted(domiciles),
+                placeholder="Todos"
+            )
         
-        return_1y_max = st.number_input(
-            "Retorno 1A Máx (%)",
-            value=100.0,
-            step=1.0
-        )
+        with col4:
+            # Index fund filter
+            index_filter = st.selectbox(
+                "Tipo de Gestión",
+                options=["Todos", "Solo Indexados", "Solo Activos"]
+            )
     
-    # Additional filters in expandable section
-    with st.expander("⚙️ Filtros Avanzados"):
-        adv_col1, adv_col2, adv_col3 = st.columns(3)
+    with filter_tabs[1]:  # Performance filters
+        col1, col2, col3, col4 = st.columns(4)
         
-        with adv_col1:
-            min_sharpe = st.number_input(
-                "Ratio Sharpe Mínimo (3A)",
-                value=-5.0,
+        with col1:
+            return_period = st.selectbox(
+                "Período de Retorno",
+                options=['1y', '3y', '5y', '10y'],
+                format_func=lambda x: {'1y': '1 Año', '3y': '3 Años', 
+                                      '5y': '5 Años', '10y': '10 Años'}[x]
+            )
+            
+            return_col = f'totalReturn_{return_period}'
+            if return_col in df.columns:
+                min_val = float(df[return_col].min()) if not df[return_col].isna().all() else -50
+                max_val = float(df[return_col].max()) if not df[return_col].isna().all() else 100
+                
+                return_range = st.slider(
+                    f"Rango Retorno {return_period.upper()} (%)",
+                    min_value=min_val,
+                    max_value=max_val,
+                    value=(min_val, max_val),
+                    step=0.5
+                )
+        
+        with col2:
+            # YTD filter
+            if 'totalReturn_ytd' in df.columns:
+                ytd_min = st.number_input(
+                    "YTD Mínimo (%)",
+                    value=-100.0,
+                    step=1.0
+                )
+        
+        with col3:
+            # Alpha filter
+            alpha_period = st.selectbox(
+                "Alpha Período",
+                options=['3y', '5y', '10y'],
+                format_func=lambda x: f"Alpha {x.upper()}"
+            )
+            
+            alpha_col = f'alpha_{alpha_period}Monthly'
+            if alpha_col in df.columns:
+                min_alpha = st.number_input(
+                    f"Alpha Mínimo ({alpha_period.upper()})",
+                    value=-10.0,
+                    step=0.5
+                )
+        
+        with col4:
+            # Percentile filter
+            percentile_col = f'returnRankCategory_{return_period.replace("y", "y")}'
+            if percentile_col in df.columns:
+                max_percentile = st.slider(
+                    "Percentil Máximo (Top %)",
+                    min_value=1,
+                    max_value=100,
+                    value=100,
+                    help="1 = Top 1%, 100 = Todos"
+                )
+    
+    with filter_tabs[2]:  # Risk filters
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            # Volatility filter
+            vol_period = st.selectbox(
+                "Volatilidad Período",
+                options=['1y', '3y', '5y'],
+                format_func=lambda x: f"Volatilidad {x.upper()}"
+            )
+            
+            vol_col = f'standardDeviation_{vol_period}Monthly'
+            if vol_col in df.columns:
+                max_vol = st.number_input(
+                    f"Volatilidad Máx ({vol_period.upper()}) %",
+                    value=50.0,
+                    min_value=0.0,
+                    step=1.0
+                )
+        
+        with col2:
+            # Sharpe filter
+            sharpe_period = st.selectbox(
+                "Sharpe Período",
+                options=['1y', '3y', '5y'],
+                format_func=lambda x: f"Sharpe {x.upper()}"
+            )
+            
+            sharpe_col = f'sharpeRatio_{sharpe_period}Monthly'
+            if sharpe_col in df.columns:
+                min_sharpe = st.number_input(
+                    f"Sharpe Mínimo ({sharpe_period.upper()})",
+                    value=-5.0,
+                    step=0.1
+                )
+        
+        with col3:
+            # Beta filter
+            beta_col = f'beta_{vol_period}Monthly'
+            if beta_col in df.columns:
+                beta_range = st.slider(
+                    f"Rango Beta ({vol_period.upper()})",
+                    min_value=-2.0,
+                    max_value=3.0,
+                    value=(-2.0, 3.0),
+                    step=0.1
+                )
+        
+        with col4:
+            # Risk rating
+            risk_ratings = ['Low', 'Below Average', 'Average', 'Above Average', 'High']
+            selected_risk = st.multiselect(
+                "Rating Riesgo",
+                options=risk_ratings,
+                placeholder="Todos"
+            )
+    
+    with filter_tabs[3]:  # Quality filters
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            # Fund size
+            size_range = st.slider(
+                "Tamaño Fondo (M€)",
+                min_value=0,
+                max_value=10000,
+                value=(0, 10000),
+                step=50
+            )
+        
+        with col2:
+            # Star rating
+            min_stars = st.slider(
+                "Rating Mínimo ⭐",
+                min_value=1,
+                max_value=5,
+                value=1
+            )
+        
+        with col3:
+            # Expense ratio
+            max_expense = st.number_input(
+                "Gastos Máximos (%)",
+                value=5.0,
+                min_value=0.0,
                 step=0.1
             )
         
-        with adv_col2:
+        with col4:
+            # Data quality
+            min_quality = st.slider(
+                "Calidad Datos Mín",
+                min_value=0,
+                max_value=5,
+                value=3
+            )
+    
+    with filter_tabs[4]:  # ESG filters
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            # Overall ESG
             min_esg = st.slider(
                 "Rating ESG Mínimo 🌱",
                 min_value=1,
@@ -555,490 +882,722 @@ def main():
                 value=1
             )
         
-        with adv_col3:
-            max_expense = st.number_input(
-                "Gastos Máximos (%)",
-                value=5.0,
-                min_value=0.0,
-                step=0.1
-            )
+        with col2:
+            # Environmental score
+            if 'corporateSustainabilityScore_environmental' in df.columns:
+                min_env = st.number_input(
+                    "Score Ambiental Mín",
+                    value=0.0,
+                    step=1.0
+                )
+        
+        with col3:
+            # Social score
+            if 'corporateSustainabilityScore_social' in df.columns:
+                min_social = st.number_input(
+                    "Score Social Mín",
+                    value=0.0,
+                    step=1.0
+                )
+        
+        with col4:
+            # Governance score
+            if 'corporateSustainabilityScore_governance' in df.columns:
+                min_gov = st.number_input(
+                    "Score Gobernanza Mín",
+                    value=0.0,
+                    step=1.0
+                )
     
-    # Apply filters
+    # Apply all filters
     filtered_df = df.copy()
     
+    # Basic filters
     if selected_fund_types:
         filtered_df = filtered_df[filtered_df['fund_type'].isin(selected_fund_types)]
     
     if selected_categories:
         filtered_df = filtered_df[filtered_df['morningstarCategory'].isin(selected_categories)]
     
-    filtered_df = filtered_df[filtered_df['data_quality'] >= min_quality]
+    if selected_domiciles:
+        filtered_df = filtered_df[filtered_df['domicile'].isin(selected_domiciles)]
     
-    # Size filter (convert to millions)
-    if 'fundSize' in filtered_df.columns:
-        filtered_df = filtered_df[
-            (filtered_df['fundSize'] >= min_size * 1e6) & 
-            (filtered_df['fundSize'] <= max_size * 1e6)
-        ]
+    if index_filter == "Solo Indexados":
+        filtered_df = filtered_df[filtered_df['isIndexFund'] == True]
+    elif index_filter == "Solo Activos":
+        filtered_df = filtered_df[filtered_df['isIndexFund'] == False]
     
     # Performance filters
-    filtered_df = filtered_df[
-        (filtered_df['totalReturn_1y'] >= return_1y_min) & 
-        (filtered_df['totalReturn_1y'] <= return_1y_max)
-    ]
-    
-    if 'sharpeRatio_3yMonthly' in filtered_df.columns:
+    if return_col in filtered_df.columns:
         filtered_df = filtered_df[
-            (filtered_df['sharpeRatio_3yMonthly'] >= min_sharpe) | 
-            (filtered_df['sharpeRatio_3yMonthly'].isna())
+            (filtered_df[return_col] >= return_range[0]) & 
+            (filtered_df[return_col] <= return_range[1])
         ]
     
-    if 'sustainabilityRating' in filtered_df.columns:
+    if 'totalReturn_ytd' in filtered_df.columns:
         filtered_df = filtered_df[
-            (filtered_df['sustainabilityRating'] >= min_esg) | 
-            (filtered_df['sustainabilityRating'].isna())
+            (filtered_df['totalReturn_ytd'] >= ytd_min) | 
+            filtered_df['totalReturn_ytd'].isna()
+        ]
+    
+    if alpha_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df[alpha_col] >= min_alpha) | 
+            filtered_df[alpha_col].isna()
+        ]
+    
+    if percentile_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df[percentile_col] <= max_percentile) | 
+            filtered_df[percentile_col].isna()
+        ]
+    
+    # Risk filters
+    if vol_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df[vol_col] <= max_vol) | 
+            filtered_df[vol_col].isna()
+        ]
+    
+    if sharpe_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df[sharpe_col] >= min_sharpe) | 
+            filtered_df[sharpe_col].isna()
+        ]
+    
+    if beta_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            ((filtered_df[beta_col] >= beta_range[0]) & 
+             (filtered_df[beta_col] <= beta_range[1])) | 
+            filtered_df[beta_col].isna()
+        ]
+    
+    # Quality filters
+    filtered_df = filtered_df[filtered_df['data_quality'] >= min_quality]
+    
+    if 'fundSize' in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df['fundSize'] >= size_range[0] * 1e6) & 
+            (filtered_df['fundSize'] <= size_range[1] * 1e6)
         ]
     
     if 'fundStarRating_overall' in filtered_df.columns:
         filtered_df = filtered_df[
             (filtered_df['fundStarRating_overall'] >= min_stars) | 
-            (filtered_df['fundStarRating_overall'].isna())
+            filtered_df['fundStarRating_overall'].isna()
         ]
     
     if 'ongoingCharge' in filtered_df.columns:
         filtered_df = filtered_df[
             (filtered_df['ongoingCharge'] <= max_expense) | 
-            (filtered_df['ongoingCharge'].isna())
+            filtered_df['ongoingCharge'].isna()
+        ]
+    
+    # ESG filters
+    if 'sustainabilityRating' in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df['sustainabilityRating'] >= min_esg) | 
+            filtered_df['sustainabilityRating'].isna()
         ]
     
     st.markdown("---")
     
-    # Summary metrics
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Enhanced metrics dashboard
+    st.markdown("### 📊 **Dashboard de Métricas**")
     
-    with col1:
-        st.metric("Total Fondos", f"{len(filtered_df):,}")
+    metric_cols = st.columns(6)
     
-    with col2:
-        avg_return = filtered_df['totalReturn_1y'].mean()
-        st.metric("Retorno Promedio 1A", f"{avg_return:.2f}%")
+    with metric_cols[0]:
+        st.metric(
+            "Total Fondos", 
+            f"{len(filtered_df):,}",
+            delta=f"{len(filtered_df)/len(df)*100:.1f}% del total"
+        )
     
-    with col3:
-        median_expense = filtered_df['ongoingCharge'].median()
-        st.metric("Gastos Mediana", f"{median_expense:.2f}%")
+    with metric_cols[1]:
+        avg_return = filtered_df[return_col].mean() if return_col in filtered_df.columns else 0
+        st.metric(
+            f"Retorno Medio {return_period.upper()}", 
+            f"{avg_return:.2f}%"
+        )
     
-    with col4:
-        total_aum = filtered_df['fundSize'].sum() / 1e9
-        st.metric("AUM Total", f"€{total_aum:.1f}B")
+    with metric_cols[2]:
+        avg_sharpe = filtered_df[sharpe_col].mean() if sharpe_col in filtered_df.columns else 0
+        st.metric(
+            f"Sharpe Medio {sharpe_period.upper()}", 
+            f"{avg_sharpe:.2f}"
+        )
     
-    with col5:
-        avg_sharpe = filtered_df['sharpeRatio_3yMonthly'].mean()
-        st.metric("Sharpe Promedio 3A", f"{avg_sharpe:.2f}")
+    with metric_cols[3]:
+        median_expense = filtered_df['ongoingCharge'].median() if 'ongoingCharge' in filtered_df.columns else 0
+        st.metric(
+            "Gastos Mediana", 
+            f"{median_expense:.2f}%"
+        )
+    
+    with metric_cols[4]:
+        total_aum = filtered_df['fundSize'].sum() / 1e9 if 'fundSize' in filtered_df.columns else 0
+        st.metric(
+            "AUM Total", 
+            f"€{total_aum:.1f}B"
+        )
+    
+    with metric_cols[5]:
+        avg_stars = filtered_df['fundStarRating_overall'].mean() if 'fundStarRating_overall' in filtered_df.columns else 0
+        st.metric(
+            "Rating Medio", 
+            f"⭐ {avg_stars:.1f}"
+        )
     
     st.markdown("---")
     
-    # Tabs for different views
-    tab1, tab2, tab3 = st.tabs(["📊 **ANÁLISIS**", "🔍 **SCREENING**", "⚖️ **COMPARADOR**"])
+    # Main tabs
+    main_tabs = st.tabs(["📊 **ANÁLISIS**", "🔍 **SCREENING**", "⚖️ **COMPARADOR**", "📈 **VISUALIZACIONES**"])
     
-    with tab1:
-        # Analysis tab
-        col1, col2 = st.columns(2)
+    with main_tabs[0]:  # Analysis
+        # Beautiful histograms with KDE
+        st.markdown("### 📊 **Distribuciones con Análisis de Densidad**")
         
-        with col1:
-            # Risk-Return Scatter
-            if not filtered_df.empty:
-                fig = create_risk_return_scatter(filtered_df)
+        hist_col1, hist_col2 = st.columns(2)
+        
+        with hist_col1:
+            if return_col in filtered_df.columns:
+                fig = create_beautiful_histogram(
+                    filtered_df[return_col],
+                    f"Distribución Retorno {return_period.upper()}",
+                    f"Retorno {return_period.upper()} (%)",
+                    '#667eea'
+                )
                 st.plotly_chart(fig, use_container_width=True)
         
-        with col2:
-            # Category Distribution
-            category_counts = filtered_df['morningstarCategory'].value_counts().head(10)
-            fig = px.bar(
-                x=category_counts.values,
-                y=category_counts.index,
-                orientation='h',
-                labels={'x': 'Cantidad', 'y': 'Categoría'},
-                title='Top 10 Categorías'
-            )
-            fig.update_layout(
-                paper_bgcolor='#0e1117',
-                plot_bgcolor='#1a1f2e',
-                font=dict(color='#fafafa'),
-                height=400,
-                xaxis=dict(gridcolor='#2d3748'),
-                yaxis=dict(gridcolor='#2d3748')
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        with hist_col2:
+            if sharpe_col in filtered_df.columns:
+                fig = create_beautiful_histogram(
+                    filtered_df[sharpe_col],
+                    f"Distribución Sharpe {sharpe_period.upper()}",
+                    f"Ratio Sharpe {sharpe_period.upper()}",
+                    '#764ba2'
+                )
+                st.plotly_chart(fig, use_container_width=True)
         
-        # Performance distribution
-        st.markdown("### 📈 Distribución de Métricas Clave")
-        col1, col2, col3 = st.columns(3)
+        # Risk-Return Scatter
+        st.markdown("### 🎯 **Análisis Riesgo-Retorno Interactivo**")
         
-        with col1:
-            fig = px.histogram(
-                filtered_df.dropna(subset=['totalReturn_1y']),
-                x='totalReturn_1y',
-                nbins=30,
-                title='Distribución Retorno 1A',
-                labels={'totalReturn_1y': 'Retorno 1A (%)'}
+        if vol_col in filtered_df.columns and return_col in filtered_df.columns:
+            fig = px.scatter(
+                filtered_df.dropna(subset=[vol_col, return_col]),
+                x=vol_col,
+                y=return_col,
+                color='fund_type',
+                size='fundSize',
+                hover_data=['name', 'firmName', 'morningstarCategory', 
+                           'fundStarRating_overall', 'ongoingCharge'],
+                labels={
+                    vol_col: f'Riesgo (Volatilidad {vol_period.upper()}) %',
+                    return_col: f'Retorno {return_period.upper()} (%)',
+                    'fund_type': 'Tipo de Fondo'
+                },
+                title=f"Perfil Riesgo-Retorno ({return_period.upper()})",
+                color_discrete_map={
+                    'Renta Variable': '#3b82f6',
+                    'Renta Fija': '#10b981',
+                    'Alternativo': '#f59e0b',
+                    'Mixto/Otro': '#8b5cf6'
+                }
             )
-            fig.update_layout(
-                paper_bgcolor='#0e1117',
-                plot_bgcolor='#1a1f2e',
-                font=dict(color='#fafafa'),
-                height=300,
-                showlegend=False,
-                xaxis=dict(gridcolor='#2d3748'),
-                yaxis=dict(gridcolor='#2d3748', title='Cantidad')
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            fig = px.histogram(
-                filtered_df.dropna(subset=['sharpeRatio_3yMonthly']),
-                x='sharpeRatio_3yMonthly',
-                nbins=30,
-                title='Distribución Ratio Sharpe (3A)',
-                labels={'sharpeRatio_3yMonthly': 'Ratio Sharpe'}
-            )
-            fig.update_layout(
-                paper_bgcolor='#0e1117',
-                plot_bgcolor='#1a1f2e',
-                font=dict(color='#fafafa'),
-                height=300,
-                showlegend=False,
-                xaxis=dict(gridcolor='#2d3748'),
-                yaxis=dict(gridcolor='#2d3748', title='Cantidad')
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col3:
-            fig = px.histogram(
-                filtered_df.dropna(subset=['ongoingCharge']),
-                x='ongoingCharge',
-                nbins=30,
-                title='Distribución Gastos Corrientes',
-                labels={'ongoingCharge': 'Gastos Corrientes (%)'}
-            )
-            fig.update_layout(
-                paper_bgcolor='#0e1117',
-                plot_bgcolor='#1a1f2e',
-                font=dict(color='#fafafa'),
-                height=300,
-                showlegend=False,
-                xaxis=dict(gridcolor='#2d3748'),
-                yaxis=dict(gridcolor='#2d3748', title='Cantidad')
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Top performers by category
-        st.markdown("### 🏆 Mejores Fondos por Categoría")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Best returns by type
-            best_by_type = filtered_df.groupby('fund_type').apply(
-                lambda x: x.nlargest(1, 'totalReturn_1y')[['name', 'totalReturn_1y']]
-            ).reset_index(drop=True)
             
-            st.markdown("**📈 Mejor Retorno 1A por Tipo**")
-            for _, row in best_by_type.iterrows():
-                if not pd.isna(row['totalReturn_1y']):
-                    st.markdown(f"• {row['name'][:40]}... : **{row['totalReturn_1y']:.2f}%**")
-        
-        with col2:
-            # Best Sharpe by type
-            best_sharpe = filtered_df.groupby('fund_type').apply(
-                lambda x: x.nlargest(1, 'sharpeRatio_3yMonthly')[['name', 'sharpeRatio_3yMonthly']]
-            ).reset_index(drop=True)
+            # Add quadrant lines
+            x_median = filtered_df[vol_col].median()
+            y_median = filtered_df[return_col].median()
             
-            st.markdown("**📊 Mejor Sharpe 3A por Tipo**")
-            for _, row in best_sharpe.iterrows():
-                if not pd.isna(row['sharpeRatio_3yMonthly']):
-                    st.markdown(f"• {row['name'][:40]}... : **{row['sharpeRatio_3yMonthly']:.2f}**")
+            fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5)
+            fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5)
+            
+            # Add annotations for quadrants
+            fig.add_annotation(x=x_median*0.5, y=y_median*2, text="⭐ Ideal", showarrow=False,
+                             font=dict(size=14, color="#10b981"))
+            fig.add_annotation(x=x_median*1.5, y=y_median*2, text="📈 Alto Riesgo/Retorno", 
+                             showarrow=False, font=dict(size=14, color="#f59e0b"))
+            fig.add_annotation(x=x_median*0.5, y=y_median*0.5, text="💤 Conservador", 
+                             showarrow=False, font=dict(size=14, color="#3b82f6"))
+            fig.add_annotation(x=x_median*1.5, y=y_median*0.5, text="❌ Evitar", 
+                             showarrow=False, font=dict(size=14, color="#ef4444"))
+            
+            fig.update_layout(
+                paper_bgcolor='#0e1117',
+                plot_bgcolor='#1a1f2e',
+                font=dict(color='#fafafa'),
+                height=600,
+                xaxis=dict(gridcolor='#2d3748', zeroline=False),
+                yaxis=dict(gridcolor='#2d3748', zeroline=False)
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Category analysis
+        st.markdown("### 🏆 **Top Performers por Categoría**")
+        
+        perf_col1, perf_col2, perf_col3 = st.columns(3)
+        
+        with perf_col1:
+            st.markdown("**📈 Mejor Retorno**")
+            if return_col in filtered_df.columns:
+                top_returns = filtered_df.nlargest(5, return_col)[['name', return_col, 'fund_type']]
+                for _, row in top_returns.iterrows():
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(90deg, #10b981, #059669); 
+                                padding: 8px; border-radius: 8px; margin: 5px 0;'>
+                        <b>{row['name'][:35]}...</b><br>
+                        {row[return_col]:.2f}% | {row['fund_type']}
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        with perf_col2:
+            st.markdown("**📊 Mejor Sharpe**")
+            if sharpe_col in filtered_df.columns:
+                top_sharpe = filtered_df.nlargest(5, sharpe_col)[['name', sharpe_col, 'fund_type']]
+                for _, row in top_sharpe.iterrows():
+                    if not pd.isna(row[sharpe_col]):
+                        st.markdown(f"""
+                        <div style='background: linear-gradient(90deg, #667eea, #764ba2); 
+                                    padding: 8px; border-radius: 8px; margin: 5px 0;'>
+                            <b>{row['name'][:35]}...</b><br>
+                            Sharpe: {row[sharpe_col]:.2f} | {row['fund_type']}
+                        </div>
+                        """, unsafe_allow_html=True)
+        
+        with perf_col3:
+            st.markdown("**💰 Menores Gastos**")
+            if 'ongoingCharge' in filtered_df.columns:
+                low_expense = filtered_df.nsmallest(5, 'ongoingCharge')[['name', 'ongoingCharge', 'fund_type']]
+                for _, row in low_expense.iterrows():
+                    st.markdown(f"""
+                    <div style='background: linear-gradient(90deg, #fbbf24, #f59e0b); 
+                                padding: 8px; border-radius: 8px; margin: 5px 0;'>
+                        <b>{row['name'][:35]}...</b><br>
+                        {row['ongoingCharge']:.2f}% | {row['fund_type']}
+                    </div>
+                    """, unsafe_allow_html=True)
     
-    with tab2:
-        # Screening tab
-        st.markdown("### 🔍 Resultados del Screening")
+    with main_tabs[1]:  # Screening
+        st.markdown("### 🔍 **Screening Avanzado**")
         
-        # Sorting options
-        col1, col2, col3 = st.columns(3)
-        with col1:
+        # Sorting configuration
+        sort_col1, sort_col2, sort_col3, sort_col4 = st.columns(4)
+        
+        with sort_col1:
+            # Dynamic sort options based on selected period
+            sort_options = [
+                f'totalReturn_{return_period}',
+                f'sharpeRatio_{sharpe_period}Monthly',
+                f'alpha_{alpha_period}Monthly',
+                f'standardDeviation_{vol_period}Monthly',
+                'fundSize',
+                'ongoingCharge',
+                'fundStarRating_overall',
+                'totalReturn_ytd'
+            ]
+            
+            # Filter to existing columns
+            sort_options = [opt for opt in sort_options if opt in filtered_df.columns]
+            
             sort_by = st.selectbox(
                 "Ordenar por",
-                options=['totalReturn_1y', 'totalReturn_3y', 'sharpeRatio_3yMonthly', 
-                        'fundSize', 'ongoingCharge', 'fundStarRating_overall'],
-                format_func=lambda x: {
-                    'totalReturn_1y': 'Retorno 1A',
-                    'totalReturn_3y': 'Retorno 3A',
-                    'sharpeRatio_3yMonthly': 'Ratio Sharpe 3A',
-                    'fundSize': 'Tamaño del Fondo',
-                    'ongoingCharge': 'Gastos Corrientes',
-                    'fundStarRating_overall': 'Calificación Estrellas'
-                }.get(x, x)
+                options=sort_options,
+                format_func=lambda x: x.replace('_', ' ').replace('Monthly', '').title()
             )
-        with col2:
+        
+        with sort_col2:
             sort_order = st.radio(
                 "Orden",
                 options=['Descendente', 'Ascendente'],
                 horizontal=True
             )
-        with col3:
-            num_results = st.number_input(
-                "Mostrar top",
+        
+        with sort_col3:
+            num_results = st.slider(
+                "Número de resultados",
                 min_value=10,
-                max_value=100,
-                value=25,
-                step=5
+                max_value=200,
+                value=50,
+                step=10
             )
         
-        # Sort and display
+        with sort_col4:
+            # Export format
+            export_format = st.selectbox(
+                "Formato exportación",
+                options=['CSV', 'Excel']
+            )
+        
+        # Apply sorting
         ascending = sort_order == 'Ascendente'
         sorted_df = filtered_df.sort_values(by=sort_by, ascending=ascending, na_position='last').head(num_results)
         
-        # Display columns
-        display_cols = ['name', 'firmName', 'morningstarCategory', 'fund_type',
-                       'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y',
-                       'sharpeRatio_3yMonthly', 'standardDeviation_3yMonthly',
-                       'fundSize', 'ongoingCharge', 'fundStarRating_overall',
-                       'sustainabilityRating']
+        # Prepare display columns dynamically
+        base_cols = ['name', 'firmName', 'morningstarCategory', 'fund_type']
         
-        # Filter to existing columns
-        display_cols = [col for col in display_cols if col in sorted_df.columns]
+        # Add dynamic columns based on selected periods
+        dynamic_cols = [
+            f'totalReturn_{return_period}',
+            'totalReturn_ytd',
+            f'sharpeRatio_{sharpe_period}Monthly',
+            f'alpha_{alpha_period}Monthly',
+            f'standardDeviation_{vol_period}Monthly',
+            f'beta_{vol_period}Monthly',
+            'fundSize',
+            'ongoingCharge',
+            'fundStarRating_overall',
+            'sustainabilityRating',
+            f'returnRankCategory_{return_period}'
+        ]
         
-        # Format display dataframe
+        display_cols = base_cols + [col for col in dynamic_cols if col in sorted_df.columns]
+        
+        # Create display dataframe
         display_df = sorted_df[display_cols].copy()
         
-        # Format numeric columns
+        # Format columns
         if 'fundSize' in display_df.columns:
             display_df['fundSize'] = display_df['fundSize'].apply(lambda x: format_number(x, 1, '€'))
         
-        for col in ['totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 'ongoingCharge']:
-            if col in display_df.columns:
-                display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
+        # Format return columns
+        return_cols = [col for col in display_df.columns if 'totalReturn' in col]
+        for col in return_cols:
+            display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
         
-        for col in ['sharpeRatio_3yMonthly', 'standardDeviation_3yMonthly']:
-            if col in display_df.columns:
-                display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/D")
+        # Format ratio columns
+        ratio_cols = [col for col in display_df.columns if any(x in col for x in ['sharpe', 'alpha', 'beta', 'standard'])]
+        for col in ratio_cols:
+            display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) else "N/D")
         
-        # Rename columns to Spanish
-        column_names = {
-            'name': 'Nombre del Fondo',
-            'firmName': 'Gestora',
-            'morningstarCategory': 'Categoría',
-            'fund_type': 'Tipo',
-            'totalReturn_1y': 'Retorno 1A',
-            'totalReturn_3y': 'Retorno 3A',
-            'totalReturn_5y': 'Retorno 5A',
-            'sharpeRatio_3yMonthly': 'Sharpe 3A',
-            'standardDeviation_3yMonthly': 'Volatilidad 3A',
-            'fundSize': 'AUM',
-            'ongoingCharge': 'Gastos',
-            'fundStarRating_overall': 'Estrellas',
-            'sustainabilityRating': 'ESG'
-        }
-        display_df = display_df.rename(columns=column_names)
+        # Format other numeric columns
+        if 'ongoingCharge' in display_df.columns:
+            display_df['ongoingCharge'] = display_df['ongoingCharge'].apply(lambda x: f"{x:.2f}%" if not pd.isna(x) else "N/D")
         
-        # Display table
+        # Display table with custom formatting
         st.dataframe(
             display_df,
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Estrellas": st.column_config.NumberColumn("Estrellas", format="⭐ %.0f"),
-                "ESG": st.column_config.NumberColumn("ESG", format="🌱 %.0f")
-            }
+                "fundStarRating_overall": st.column_config.NumberColumn("⭐", format="%.0f"),
+                "sustainabilityRating": st.column_config.NumberColumn("🌱", format="%.0f"),
+                f"returnRankCategory_{return_period}": st.column_config.NumberColumn("Percentil", format="%.0f")
+            },
+            height=600
         )
         
         # Export functionality
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3 = st.columns([2, 1, 2])
         with col2:
-            if st.button("📥 Exportar Resultados a CSV", type="primary", use_container_width=True):
-                csv = sorted_df.to_csv(index=False)
-                st.download_button(
-                    label="💾 Descargar CSV",
-                    data=csv,
-                    file_name=f"fondos_screening_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+            if st.button("📥 **Exportar Datos**", type="primary", use_container_width=True):
+                if export_format == "CSV":
+                    csv = sorted_df.to_csv(index=False)
+                    st.download_button(
+                        label="💾 Descargar CSV",
+                        data=csv,
+                        file_name=f"screening_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    # Excel export would require xlsxwriter or openpyxl
+                    st.info("Excel export requiere librerías adicionales")
     
-    with tab3:
-        # Comparison tab
-        st.markdown("### ⚖️ Comparador de Fondos")
+    with main_tabs[2]:  # Comparator
+        st.markdown("### ⚖️ **Comparador Avanzado de Fondos**")
         
-        # Fund selection
+        # Fund selection with search
         fund_names = sorted(filtered_df['name'].unique())
-        selected_funds = st.multiselect(
-            "Selecciona fondos para comparar (máximo 5)",
-            options=fund_names,
-            max_selections=5,
-            help="Elige hasta 5 fondos para una comparación detallada"
-        )
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            selected_funds = st.multiselect(
+                "Selecciona hasta 10 fondos para comparar",
+                options=fund_names,
+                max_selections=10,
+                help="Puedes seleccionar hasta 10 fondos para una comparación detallada"
+            )
+        
+        with col2:
+            comparison_view = st.radio(
+                "Vista",
+                ["Gráficos", "Tabla", "Ambos"],
+                index=2
+            )
         
         if selected_funds:
             comparison_df = filtered_df[filtered_df['name'].isin(selected_funds)]
             
-            # Performance comparison chart
-            if len(selected_funds) > 0:
-                fig = create_performance_chart(filtered_df, selected_funds)
+            if comparison_view in ["Gráficos", "Ambos"]:
+                # Performance heatmap
+                st.markdown("#### 🔥 **Mapa de Calor - Retornos**")
+                fig = create_performance_heatmap(filtered_df, selected_funds)
                 st.plotly_chart(fig, use_container_width=True)
-            
-            # Detailed comparison table
-            st.markdown("### 📊 Tabla Comparativa Detallada")
-            
-            # Key metrics for comparison
-            comparison_metrics = ['name', 'morningstarCategory', 'fundSize', 'ongoingCharge',
-                                 'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y',
-                                 'sharpeRatio_3yMonthly', 'standardDeviation_3yMonthly',
-                                 'alpha_3yMonthly', 'beta_3yMonthly',
-                                 'fundStarRating_overall', 'sustainabilityRating',
-                                 'maximumEntryCost', 'maximumExitCost']
-            
-            comparison_metrics = [m for m in comparison_metrics if m in comparison_df.columns]
-            
-            # Create comparison display
-            comp_display = comparison_df[comparison_metrics].set_index('name').T
-            
-            # Translate index names
-            index_translations = {
-                'morningstarCategory': 'Categoría',
-                'fundSize': 'Tamaño (€)',
-                'ongoingCharge': 'Gastos Corrientes (%)',
-                'totalReturn_1y': 'Retorno 1 Año (%)',
-                'totalReturn_3y': 'Retorno 3 Años (%)',
-                'totalReturn_5y': 'Retorno 5 Años (%)',
-                'sharpeRatio_3yMonthly': 'Ratio Sharpe 3A',
-                'standardDeviation_3yMonthly': 'Volatilidad 3A (%)',
-                'alpha_3yMonthly': 'Alpha 3A',
-                'beta_3yMonthly': 'Beta 3A',
-                'fundStarRating_overall': 'Calificación Estrellas',
-                'sustainabilityRating': 'Calificación ESG',
-                'maximumEntryCost': 'Comisión Entrada Máx (%)',
-                'maximumExitCost': 'Comisión Salida Máx (%)'
-            }
-            
-            comp_display.index = comp_display.index.map(lambda x: index_translations.get(x, x))
-            
-            # Format values
-            for col in comp_display.columns:
-                if 'Tamaño' in comp_display.index:
-                    comp_display.loc['Tamaño (€)', col] = format_number(comp_display.loc['Tamaño (€)', col], 1, '€')
-            
-            st.dataframe(comp_display, use_container_width=True)
-            
-            # Visual comparisons
-            st.markdown("### 📈 Análisis Visual Comparativo")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Risk comparison
-                risk_metrics = ['standardDeviation_1yMonthly', 'standardDeviation_3yMonthly', 
-                              'standardDeviation_5yMonthly']
-                risk_metrics = [m for m in risk_metrics if m in comparison_df.columns]
                 
-                if risk_metrics:
-                    fig = go.Figure()
-                    
-                    for fund in selected_funds:
-                        fund_data = comparison_df[comparison_df['name'] == fund].iloc[0]
-                        values = [fund_data[m] if not pd.isna(fund_data[m]) else 0 for m in risk_metrics]
-                        
-                        fig.add_trace(go.Scatterpolar(
-                            r=values,
-                            theta=['1 Año', '3 Años', '5 Años'],
-                            fill='toself',
-                            name=fund[:25] + '...' if len(fund) > 25 else fund
-                        ))
-                    
-                    fig.update_layout(
-                        polar=dict(
-                            radialaxis=dict(
-                                visible=True,
-                                gridcolor='#2d3748'
-                            ),
-                            bgcolor='#1a1f2e'
-                        ),
-                        showlegend=True,
-                        paper_bgcolor='#0e1117',
-                        font=dict(color='#fafafa'),
-                        title="Perfil de Riesgo (Volatilidad)",
-                        height=400
+                # Risk profiles
+                st.markdown("#### 🎯 **Perfiles de Riesgo**")
+                
+                risk_cols = st.columns(min(3, len(selected_funds)))
+                for i, fund_name in enumerate(selected_funds[:3]):
+                    with risk_cols[i]:
+                        fund_data = comparison_df[comparison_df['name'] == fund_name].iloc[0]
+                        fig = create_risk_metrics_radar(fund_data, fund_name)
+                        st.plotly_chart(fig, use_container_width=True)
+            
+            if comparison_view in ["Tabla", "Ambos"]:
+                # Comprehensive comparison table
+                st.markdown("#### 📊 **Comparación Detallada**")
+                
+                # Select metrics to compare
+                metric_categories = {
+                    'Identificación': ['name', 'isin', 'morningstarCategory', 'domicile'],
+                    'Retornos': ['totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m',
+                                'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 
+                                'totalReturn_10y', 'totalReturn_ytd'],
+                    'Riesgo': ['standardDeviation_1yMonthly', 'standardDeviation_3yMonthly',
+                              'standardDeviation_5yMonthly', 'beta_1yMonthly', 'beta_3yMonthly'],
+                    'Ajustado al Riesgo': ['sharpeRatio_1yMonthly', 'sharpeRatio_3yMonthly',
+                                          'sharpeRatio_5yMonthly', 'alpha_3yMonthly', 'alpha_5yMonthly'],
+                    'Costes': ['ongoingCharge', 'maximumEntryCost', 'maximumExitCost'],
+                    'Ratings': ['fundStarRating_overall', 'fundStarRating_3y', 'fundStarRating_5y',
+                               'sustainabilityRating', 'morningstarRiskRating_overall'],
+                    'ESG': ['corporateSustainabilityScore_total', 'corporateSustainabilityScore_environmental',
+                           'corporateSustainabilityScore_social', 'corporateSustainabilityScore_governance'],
+                    'Características': ['fundSize', 'fund_age_years', 'averageManagerTenure_fund']
+                }
+                
+                selected_categories = st.multiselect(
+                    "Categorías de métricas a comparar",
+                    options=list(metric_categories.keys()),
+                    default=['Retornos', 'Riesgo', 'Ajustado al Riesgo', 'Costes', 'Ratings']
+                )
+                
+                # Build comparison metrics list
+                comparison_metrics = []
+                for cat in selected_categories:
+                    comparison_metrics.extend(metric_categories[cat])
+                
+                # Filter to existing columns
+                comparison_metrics = [m for m in comparison_metrics if m in comparison_df.columns]
+                
+                # Create comparison table
+                comp_display = comparison_df[comparison_metrics].set_index('name').T
+                
+                # Format the display
+                st.dataframe(
+                    comp_display,
+                    use_container_width=True,
+                    height=600
+                )
+        else:
+            st.info("👆 Selecciona fondos para comenzar la comparación")
+    
+    with main_tabs[3]:  # Visualizations
+        st.markdown("### 📈 **Visualizaciones Avanzadas**")
+        
+        viz_tabs = st.tabs(["📊 Distribuciones", "🗺️ Mapa de Mercado", "⏰ Series Temporales", "🎨 Correlaciones"])
+        
+        with viz_tabs[0]:
+            # Multiple distributions
+            st.markdown("#### Análisis de Distribuciones Múltiples")
+            
+            dist_col1, dist_col2 = st.columns(2)
+            
+            with dist_col1:
+                if 'ongoingCharge' in filtered_df.columns:
+                    fig = create_beautiful_histogram(
+                        filtered_df['ongoingCharge'],
+                        "Distribución de Gastos Corrientes",
+                        "Gastos (%)",
+                        '#ef4444'
                     )
                     st.plotly_chart(fig, use_container_width=True)
             
-            with col2:
-                # Expense and rating comparison
-                fig = go.Figure()
+            with dist_col2:
+                if vol_col in filtered_df.columns:
+                    fig = create_beautiful_histogram(
+                        filtered_df[vol_col],
+                        f"Distribución de Volatilidad {vol_period.upper()}",
+                        "Volatilidad (%)",
+                        '#f59e0b'
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+            
+            # Alpha distribution if available
+            if alpha_col in filtered_df.columns:
+                fig = create_beautiful_histogram(
+                    filtered_df[alpha_col],
+                    f"Distribución de Alpha {alpha_period.upper()}",
+                    "Alpha",
+                    '#10b981'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        
+        with viz_tabs[1]:
+            # Market map (treemap)
+            st.markdown("#### Mapa del Mercado por Categorías")
+            
+            if len(filtered_df) > 0:
+                # Prepare data for treemap
+                treemap_data = filtered_df.groupby(['fund_type', 'morningstarCategory']).agg({
+                    'fundSize': 'sum',
+                    return_col: 'mean',
+                    'name': 'count'
+                }).reset_index()
                 
-                # Add expense ratio bars
-                expenses = []
-                ratings = []
-                for fund in selected_funds:
-                    fund_data = comparison_df[comparison_df['name'] == fund].iloc[0]
-                    expenses.append(fund_data['ongoingCharge'] if not pd.isna(fund_data['ongoingCharge']) else 0)
-                    ratings.append(fund_data['fundStarRating_overall'] if not pd.isna(fund_data['fundStarRating_overall']) else 0)
+                treemap_data = treemap_data[treemap_data['fundSize'] > 0]
+                treemap_data['label'] = treemap_data['morningstarCategory'].str[:30]
                 
-                fig.add_trace(go.Bar(
-                    name='Gastos (%)',
-                    x=[f[:20] + '...' if len(f) > 20 else f for f in selected_funds],
-                    y=expenses,
-                    yaxis='y',
-                    marker_color='#ef4444'
-                ))
-                
-                fig.add_trace(go.Bar(
-                    name='Rating ⭐',
-                    x=[f[:20] + '...' if len(f) > 20 else f for f in selected_funds],
-                    y=ratings,
-                    yaxis='y2',
-                    marker_color='#fbbf24'
-                ))
+                fig = px.treemap(
+                    treemap_data,
+                    path=['fund_type', 'label'],
+                    values='fundSize',
+                    color=return_col,
+                    color_continuous_scale='RdYlGn',
+                    title=f'Mapa del Mercado - Tamaño por AUM, Color por Retorno {return_period.upper()}',
+                    hover_data={'name': True, return_col: ':.2f'}
+                )
                 
                 fig.update_layout(
-                    title="Gastos vs Rating",
+                    paper_bgcolor='#0e1117',
+                    font=dict(color='#fafafa'),
+                    height=600
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+        
+        with viz_tabs[2]:
+            # Time series analysis
+            st.markdown("#### Análisis de Series Temporales")
+            
+            # Select funds for time series
+            ts_funds = st.multiselect(
+                "Selecciona fondos para análisis temporal",
+                options=fund_names[:100],  # Limit options for performance
+                max_selections=5
+            )
+            
+            if ts_funds:
+                # Create time series data
+                periods_map = {
+                    '1M': 'totalReturn_1m',
+                    '3M': 'totalReturn_3m',
+                    '6M': 'totalReturn_6m',
+                    '1Y': 'totalReturn_1y',
+                    '2Y': 'totalReturn_2y',
+                    '3Y': 'totalReturn_3y',
+                    '5Y': 'totalReturn_5y',
+                    '10Y': 'totalReturn_10y'
+                }
+                
+                fig = go.Figure()
+                
+                for fund_name in ts_funds:
+                    fund_data = filtered_df[filtered_df['name'] == fund_name].iloc[0]
+                    
+                    periods = []
+                    returns = []
+                    for period, col in periods_map.items():
+                        if col in filtered_df.columns and not pd.isna(fund_data.get(col)):
+                            periods.append(period)
+                            returns.append(fund_data[col])
+                    
+                    fig.add_trace(go.Scatter(
+                        x=periods,
+                        y=returns,
+                        mode='lines+markers',
+                        name=fund_name[:30] + '...' if len(fund_name) > 30 else fund_name,
+                        line=dict(width=3),
+                        marker=dict(size=10)
+                    ))
+                
+                fig.update_layout(
+                    title="Evolución de Retornos por Período",
+                    xaxis_title="Período",
+                    yaxis_title="Retorno Acumulado (%)",
                     paper_bgcolor='#0e1117',
                     plot_bgcolor='#1a1f2e',
                     font=dict(color='#fafafa'),
-                    height=400,
+                    height=500,
+                    hovermode='x unified',
                     xaxis=dict(gridcolor='#2d3748'),
-                    yaxis=dict(
-                        title='Gastos (%)',
-                        gridcolor='#2d3748',
-                        side='left'
-                    ),
-                    yaxis2=dict(
-                        title='Rating Estrellas',
-                        overlaying='y',
-                        side='right',
-                        range=[0, 5.5]
-                    ),
-                    barmode='group'
+                    yaxis=dict(gridcolor='#2d3748')
                 )
+                
                 st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("👆 Selecciona fondos de la lista para comenzar la comparación")
+        
+        with viz_tabs[3]:
+            # Correlation matrix
+            st.markdown("#### Matriz de Correlaciones")
+            
+            # Select metrics for correlation
+            corr_metrics = [
+                col for col in [return_col, sharpe_col, vol_col, alpha_col, beta_col, 
+                               'ongoingCharge', 'fundSize', 'fundStarRating_overall',
+                               'sustainabilityRating', 'fund_age_years']
+                if col in filtered_df.columns
+            ]
+            
+            if len(corr_metrics) > 2:
+                corr_data = filtered_df[corr_metrics].dropna()
+                
+                if len(corr_data) > 10:
+                    corr_matrix = corr_data.corr()
+                    
+                    fig = go.Figure(data=go.Heatmap(
+                        z=corr_matrix.values,
+                        x=corr_matrix.columns,
+                        y=corr_matrix.columns,
+                        colorscale='RdBu',
+                        zmid=0,
+                        text=corr_matrix.round(2).values,
+                        texttemplate='%{text}',
+                        textfont={"size": 10},
+                        colorbar=dict(title="Correlación")
+                    ))
+                    
+                    fig.update_layout(
+                        title="Matriz de Correlación entre Métricas",
+                        paper_bgcolor='#0e1117',
+                        plot_bgcolor='#1a1f2e',
+                        font=dict(color='#fafafa'),
+                        height=600,
+                        xaxis=dict(tickangle=-45)
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
     
     # Footer
     st.markdown("---")
     st.markdown("""
-        <div style='text-align: center; padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 12px; margin-top: 30px;'>
-            <h4 style='color: #fafafa; margin-bottom: 15px;'>📚 Recursos Adicionales</h4>
-            <div style='display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;'>
+        <div style='text-align: center; padding: 30px; 
+                    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); 
+                    border-radius: 16px; margin-top: 30px;'>
+            <h3 style='color: #fafafa; margin-bottom: 20px;'>📚 Recursos y Herramientas Adicionales</h3>
+            <div style='display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;'>
                 <a href='https://bquantfundlab.substack.com/' target='_blank' class='newsletter-button'>
-                    📧 Newsletter Gratis
+                    📧 Newsletter Análisis Cuantitativo
                 </a>
-                <a href='https://fondossupervivientes.streamlit.app/' target='_blank' class='survivorship-button' style='background-color: #ef4444;'>
-                    ⚠️ Sesgo de Supervivencia
+                <a href='https://fondossupervivientes.streamlit.app/' target='_blank' 
+                   class='survivorship-button' style='background-color: #ef4444;'>
+                    ⚠️ Análisis Sesgo de Supervivencia
                 </a>
             </div>
-            <p style='color: #8b949e; margin-top: 20px;'>
-                Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' style='color: #667eea; text-decoration: none;'>@Gnschez</a>
+            <p style='color: #8b949e; margin-top: 25px; font-size: 1.1em;'>
+                Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' 
+                                     style='color: #667eea; text-decoration: none; font-weight: 700;'>
+                    @Gnschez
+                </a>
+            </p>
+            <p style='color: #6b7280; margin-top: 10px; font-size: 0.9em;'>
+                Datos actualizados | 44,341 fondos | 96 métricas | Análisis profesional
             </p>
         </div>
     """, unsafe_allow_html=True)
 
 # Run the app
 if __name__ == "__main__":
+    main()
+    
     main()
