@@ -224,15 +224,30 @@ def load_data():
     if 'inceptionDate' in df.columns:
         df['inceptionDate'] = pd.to_datetime(df['inceptionDate'], errors='coerce')
     
-    # Translate fund types to Spanish
+    # Calculate fund age if inception date exists
+    if 'inceptionDate' in df.columns:
+        df['fund_age_years'] = (pd.Timestamp.now() - df['inceptionDate']).dt.days / 365.25
+    
+    # Handle fund type column - could be 'fund_type' or 'broadCategoryGroup'
     type_translations = {
         'Equity': 'Renta Variable',
         'Fixed Income': 'Renta Fija',
         'Alternative': 'Alternativo',
-        'Other/Mixed': 'Mixto/Otro'
+        'Other/Mixed': 'Mixto/Otro',
+        'Allocation': 'Mixto/Otro',
+        'Commodities': 'Alternativo',
+        'Convertible': 'Mixto/Otro',
+        'Miscellaneous': 'Mixto/Otro'
     }
-    if 'fund_type' in df.columns:
+    
+    # Check for fund_type or broadCategoryGroup and create/rename to fund_type
+    if 'broadCategoryGroup' in df.columns:
+        df['fund_type'] = df['broadCategoryGroup'].map(type_translations).fillna(df['broadCategoryGroup'])
+    elif 'fund_type' in df.columns:
         df['fund_type'] = df['fund_type'].map(type_translations).fillna(df['fund_type'])
+    else:
+        # Create a default fund_type column if neither exists
+        df['fund_type'] = 'Mixto/Otro'
     
     # Translate distribution types to Spanish
     if 'distributionFundType' in df.columns:
@@ -487,7 +502,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener BQuant - Fondos Españoles
+            🔍 Screener Profesional - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -497,9 +512,9 @@ def main():
     with col1:
         st.markdown("""
             <div class="newsletter-banner">
-                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
+                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Aprende sobre fondos de inversión.
+                    Análisis cuantitativo profesional
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
@@ -512,7 +527,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Entra aquí para entender cómo te engaña la industria.
+                    Análisis de fondos cerrados
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
@@ -570,7 +585,11 @@ def main():
         filter_row1 = st.columns(4)
         
         with filter_row1[0]:
-            fund_types_available = ['Todos'] + df['fund_type'].dropna().unique().tolist()
+            if 'fund_type' in df.columns:
+                fund_types_available = ['Todos'] + df['fund_type'].dropna().unique().tolist()
+            else:
+                fund_types_available = ['Todos']
+            
             selected_fund_type = st.selectbox(
                 "💼 **Categoría de Inversión**",
                 options=fund_types_available,
@@ -710,7 +729,7 @@ def main():
         filtered_df = df.copy()
         
         # Apply fund type filter
-        if selected_fund_type != 'Todos':
+        if selected_fund_type != 'Todos' and 'fund_type' in filtered_df.columns:
             filtered_df = filtered_df[filtered_df['fund_type'] == selected_fund_type]
         
         # Apply star rating filter
@@ -1275,20 +1294,28 @@ def main():
                     else:
                         size_col = None
                     
-                    fig = px.scatter(
-                        scatter_data,
-                        x=x_axis,
-                        y=y_axis,
-                        color='fund_type',
-                        size=size_col if size_col else None,
-                        hover_data=['name', 'firmName', 'morningstarCategory'],
-                        title=f"Análisis: {y_axis_display} vs {x_axis_display}",
-                        color_discrete_map={
+                    # Create scatter plot with safe fund_type handling
+                    color_col = 'fund_type' if 'fund_type' in scatter_data.columns else None
+                    
+                    if color_col:
+                        color_map = {
                             'Renta Variable': '#3b82f6',
                             'Renta Fija': '#10b981',
                             'Alternativo': '#f59e0b',
                             'Mixto/Otro': '#8b5cf6'
                         }
+                    else:
+                        color_map = None
+                    
+                    fig = px.scatter(
+                        scatter_data,
+                        x=x_axis,
+                        y=y_axis,
+                        color=color_col,
+                        size=size_col if size_col else None,
+                        hover_data=['name', 'firmName', 'morningstarCategory'],
+                        title=f"Análisis: {y_axis_display} vs {x_axis_display}",
+                        color_discrete_map=color_map
                     )
                     
                     # Add median lines
