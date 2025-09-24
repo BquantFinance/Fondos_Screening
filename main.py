@@ -1,4 +1,17 @@
-import streamlit as st
+# Initialize filter variables with default values
+        selected_return_1y = 'Todos'
+        selected_return_3y = 'Todos'
+        selected_return_5y = 'Todos'
+        selected_ytd = 'Todos'
+        selected_percentile = 'Todos'
+        selected_volatility = 'Todos'
+        selected_sharpe = 'Todos'
+        selected_alpha = 'Todos'
+        selected_beta = 'Todos'
+        selected_risk_rating = 'Todos'
+        selected_age = 'Todos'
+        selected_index = 'Todos'
+        selected_entry_fee = 'Todos'import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -390,23 +403,25 @@ ALL_COLUMN_TRANSLATIONS.update(ADDITIONAL_TRANSLATIONS)
 # Preset configurations
 PRESET_CONFIGS = {
     'Básico': ['name', 'fund_type', 'morningstarCategory', 'totalReturn_1y', 
-               'sharpeRatio_3yMonthly', 'ongoingCharge', 'fundStarRating_overall'],
+               'sharpeRatio_3yMonthly', 'ongoingCharge', 'fundStarRating_overall', 'fundSize'],
     
-    'Performance': ['name', 'totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m',
+    'Performance': ['name', 'fund_type', 'totalReturn_1m', 'totalReturn_3m', 'totalReturn_6m',
                    'totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y', 
-                   'totalReturn_ytd', 'sharpeRatio_3yMonthly'],
+                   'totalReturn_ytd', 'sharpeRatio_3yMonthly', 'alpha_3yMonthly'],
     
-    'Riesgo': ['name', 'standardDeviation_1yMonthly', 'standardDeviation_3yMonthly',
+    'Riesgo': ['name', 'fund_type', 'standardDeviation_1yMonthly', 'standardDeviation_3yMonthly',
               'beta_3yMonthly', 'sharpeRatio_3yMonthly', 'alpha_3yMonthly',
-              'morningstarRiskRating_overall'],
+              'morningstarRiskRating_overall', 'fundSize'],
     
-    'ESG': ['name', 'fund_type', 'sustainabilityRating', 'fundStarRating_overall',
-           'totalReturn_1y', 'ongoingCharge'],
+    'ESG': ['name', 'fund_type', 'sustainabilityRating', 'corporateSustainabilityScore_environmental',
+           'corporateSustainabilityScore_social', 'corporateSustainabilityScore_governance',
+           'fundStarRating_overall', 'totalReturn_1y', 'ongoingCharge'],
     
     'Completo': ['name', 'fund_type', 'morningstarCategory', 'totalReturn_1y', 
-                'totalReturn_3y', 'sharpeRatio_3yMonthly', 'standardDeviation_3yMonthly', 
-                'alpha_3yMonthly', 'beta_3yMonthly', 'ongoingCharge', 'fundSize', 
-                'fundStarRating_overall', 'sustainabilityRating']
+                'totalReturn_3y', 'totalReturn_5y', 'sharpeRatio_3yMonthly', 
+                'standardDeviation_3yMonthly', 'alpha_3yMonthly', 'beta_3yMonthly', 
+                'ongoingCharge', 'fundSize', 'fundStarRating_overall', 
+                'sustainabilityRating', 'returnRankCategory_1y']
 }
 
 # Helper functions
@@ -470,7 +485,6 @@ def create_performance_heatmap(df, fund_names):
     
     return fig
 
-# Main app
 def main():
     # Title
     st.markdown("""
@@ -553,12 +567,11 @@ def main():
         # FILTROS SECTION
         st.markdown("### 🎯 **Filtros** - *Usa estos controles para filtrar los fondos*")
         
-        # Quick filters in a clear box
-        st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+        # Basic filters
+        st.markdown("#### 📌 **Filtros Básicos**")
+        basic_cols = st.columns(6)
         
-        filter_cols = st.columns(6)
-        
-        with filter_cols[0]:
+        with basic_cols[0]:
             fund_types_available = ['Todos'] + df['fund_type'].dropna().unique().tolist()
             selected_fund_type = st.selectbox(
                 "🏷️ Tipo de Fondo",
@@ -566,7 +579,18 @@ def main():
                 help="Filtra por tipo de fondo"
             )
         
-        with filter_cols[1]:
+        with basic_cols[1]:
+            if 'morningstarCategory' in df.columns:
+                categories = ['Todas'] + sorted(df['morningstarCategory'].dropna().unique().tolist())
+                selected_category = st.selectbox(
+                    "📁 Categoría",
+                    options=categories,
+                    help="Categoría Morningstar"
+                )
+            else:
+                selected_category = 'Todas'
+        
+        with basic_cols[2]:
             selected_stars = st.selectbox(
                 "⭐ Rating Mínimo",
                 options=[0, 3, 4, 5],
@@ -574,28 +598,7 @@ def main():
                 help="Fondos con este rating o superior"
             )
         
-        with filter_cols[2]:
-            selected_return = st.selectbox(
-                "📈 Retorno 1A",
-                options=['Todos', '> 0%', '> 10%', '> 20%', '< 0%'],
-                help="Filtra por retorno anual"
-            )
-        
-        with filter_cols[3]:
-            selected_expense = st.selectbox(
-                "💰 Gastos Máximos",
-                options=['Todos', '< 0.5%', '< 1%', '< 1.5%', '< 2%'],
-                help="Fondos con gastos menores a"
-            )
-        
-        with filter_cols[4]:
-            selected_size = st.selectbox(
-                "📊 AUM Mínimo",
-                options=['Todos', '> 10M€', '> 50M€', '> 100M€', '> 500M€'],
-                help="Tamaño mínimo del fondo"
-            )
-        
-        with filter_cols[5]:
+        with basic_cols[3]:
             selected_esg = st.selectbox(
                 "🌱 ESG Mínimo",
                 options=[0, 3, 4, 5],
@@ -603,14 +606,170 @@ def main():
                 help="Rating ESG mínimo"
             )
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        with basic_cols[4]:
+            if 'domicile' in df.columns:
+                domiciles = ['Todos'] + sorted(df['domicile'].dropna().unique().tolist())
+                selected_domicile = st.selectbox(
+                    "🌍 Domicilio",
+                    options=domiciles,
+                    help="País de domicilio"
+                )
+            else:
+                selected_domicile = 'Todos'
         
-        # Apply filters
+        with basic_cols[5]:
+            if 'baseCurrency' in df.columns:
+                currencies = ['Todas'] + sorted(df['baseCurrency'].dropna().unique().tolist())
+                selected_currency = st.selectbox(
+                    "💱 Divisa",
+                    options=currencies,
+                    help="Divisa base del fondo"
+                )
+            else:
+                selected_currency = 'Todas'
+        
+        # Performance filters
+        with st.expander("📈 **Filtros de Rendimiento**", expanded=False):
+            perf_cols = st.columns(5)
+            
+            with perf_cols[0]:
+                selected_return_1y = st.selectbox(
+                    "Retorno 1 Año",
+                    options=['Todos', '> 20%', '> 10%', '> 0%', '0% a 10%', '< 0%', '< -10%'],
+                    help="Filtra por retorno anual"
+                )
+            
+            with perf_cols[1]:
+                selected_return_3y = st.selectbox(
+                    "Retorno 3 Años",
+                    options=['Todos', '> 10%', '> 5%', '> 0%', '< 0%'],
+                    help="Filtra por retorno a 3 años"
+                )
+            
+            with perf_cols[2]:
+                selected_return_5y = st.selectbox(
+                    "Retorno 5 Años",
+                    options=['Todos', '> 10%', '> 5%', '> 0%', '< 0%'],
+                    help="Filtra por retorno a 5 años"
+                )
+            
+            with perf_cols[3]:
+                selected_ytd = st.selectbox(
+                    "YTD",
+                    options=['Todos', '> 10%', '> 5%', '> 0%', '< 0%'],
+                    help="Retorno año actual"
+                )
+            
+            with perf_cols[4]:
+                if 'returnRankCategory_1y' in df.columns:
+                    selected_percentile = st.selectbox(
+                        "Percentil 1A",
+                        options=['Todos', 'Top 10%', 'Top 25%', 'Top 50%'],
+                        help="Posición en su categoría"
+                    )
+                else:
+                    selected_percentile = 'Todos'
+        
+        # Risk filters
+        with st.expander("⚡ **Filtros de Riesgo**", expanded=False):
+            risk_cols = st.columns(5)
+            
+            with risk_cols[0]:
+                selected_volatility = st.selectbox(
+                    "Volatilidad 3A",
+                    options=['Todos', '< 5%', '< 10%', '< 15%', '< 20%', '> 20%'],
+                    help="Volatilidad a 3 años"
+                )
+            
+            with risk_cols[1]:
+                selected_sharpe = st.selectbox(
+                    "Sharpe Ratio 3A",
+                    options=['Todos', '> 2', '> 1.5', '> 1', '> 0.5', '> 0', '< 0'],
+                    help="Ratio Sharpe a 3 años"
+                )
+            
+            with risk_cols[2]:
+                selected_alpha = st.selectbox(
+                    "Alpha 3A",
+                    options=['Todos', '> 5', '> 2', '> 0', '< 0'],
+                    help="Alpha a 3 años"
+                )
+            
+            with risk_cols[3]:
+                selected_beta = st.selectbox(
+                    "Beta 3A",
+                    options=['Todos', '< 0.5', '0.5-1', '0.8-1.2', '> 1.2'],
+                    help="Beta a 3 años"
+                )
+            
+            with risk_cols[4]:
+                if 'morningstarRiskRating_overall' in df.columns:
+                    risk_ratings = ['Todos'] + df['morningstarRiskRating_overall'].dropna().unique().tolist()
+                    selected_risk_rating = st.selectbox(
+                        "Rating Riesgo",
+                        options=risk_ratings,
+                        help="Calificación de riesgo Morningstar"
+                    )
+                else:
+                    selected_risk_rating = 'Todos'
+        
+        # Cost and size filters
+        with st.expander("💰 **Filtros de Costes y Tamaño**", expanded=False):
+            cost_cols = st.columns(5)
+            
+            with cost_cols[0]:
+                selected_expense = st.selectbox(
+                    "Gastos Totales",
+                    options=['Todos', '< 0.25%', '< 0.5%', '< 1%', '< 1.5%', '< 2%', '> 2%'],
+                    help="Gastos corrientes máximos"
+                )
+            
+            with cost_cols[1]:
+                selected_size = st.selectbox(
+                    "AUM",
+                    options=['Todos', '> 1000M€', '> 500M€', '> 100M€', '> 50M€', '> 10M€', '< 10M€'],
+                    help="Tamaño del fondo"
+                )
+            
+            with cost_cols[2]:
+                if 'fund_age_years' in df.columns:
+                    selected_age = st.selectbox(
+                        "Antigüedad",
+                        options=['Todos', '> 10 años', '> 5 años', '> 3 años', '> 1 año', '< 1 año'],
+                        help="Años desde inicio"
+                    )
+                else:
+                    selected_age = 'Todos'
+            
+            with cost_cols[3]:
+                if 'isIndexFund' in df.columns:
+                    selected_index = st.selectbox(
+                        "Tipo Gestión",
+                        options=['Todos', 'Solo Indexados', 'Solo Activos'],
+                        help="Gestión pasiva o activa"
+                    )
+                else:
+                    selected_index = 'Todos'
+            
+            with cost_cols[4]:
+                if 'maximumEntryCost' in df.columns:
+                    selected_entry_fee = st.selectbox(
+                        "Com. Entrada",
+                        options=['Todos', 'Sin comisión', '< 1%', '< 3%', '< 5%'],
+                        help="Comisión de entrada máxima"
+                    )
+                else:
+                    selected_entry_fee = 'Todos'
+        
+        # Apply all filters
         filtered_df = df.copy()
         
-        # Apply each filter with clear logic
+        # Basic filters
         if selected_fund_type != 'Todos':
             filtered_df = filtered_df[filtered_df['fund_type'] == selected_fund_type]
+        
+        if selected_category != 'Todas':
+            filtered_df = filtered_df[filtered_df['morningstarCategory'] == selected_category]
         
         if selected_stars > 0 and 'fundStarRating_overall' in filtered_df.columns:
             filtered_df = filtered_df[
@@ -618,18 +777,126 @@ def main():
                 filtered_df['fundStarRating_overall'].isna()
             ]
         
-        if 'totalReturn_1y' in filtered_df.columns:
-            if selected_return == '> 0%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 0]
-            elif selected_return == '> 10%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 10]
-            elif selected_return == '> 20%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 20]
-            elif selected_return == '< 0%':
-                filtered_df = filtered_df[filtered_df['totalReturn_1y'] < 0]
+        if selected_esg > 0 and 'sustainabilityRating' in filtered_df.columns:
+            filtered_df = filtered_df[
+                (filtered_df['sustainabilityRating'] >= selected_esg) |
+                filtered_df['sustainabilityRating'].isna()
+            ]
         
-        if 'ongoingCharge' in filtered_df.columns:
-            if selected_expense == '< 0.5%':
+        if selected_domicile != 'Todos':
+            filtered_df = filtered_df[filtered_df['domicile'] == selected_domicile]
+        
+        if selected_currency != 'Todas':
+            filtered_df = filtered_df[filtered_df['baseCurrency'] == selected_currency]
+        
+        # Performance filters
+        if 'totalReturn_1y' in filtered_df.columns and selected_return_1y != 'Todos':
+            if selected_return_1y == '> 20%':
+                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 20]
+            elif selected_return_1y == '> 10%':
+                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 10]
+            elif selected_return_1y == '> 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_1y'] > 0]
+            elif selected_return_1y == '0% a 10%':
+                filtered_df = filtered_df[(filtered_df['totalReturn_1y'] >= 0) & (filtered_df['totalReturn_1y'] <= 10)]
+            elif selected_return_1y == '< 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_1y'] < 0]
+            elif selected_return_1y == '< -10%':
+                filtered_df = filtered_df[filtered_df['totalReturn_1y'] < -10]
+        
+        if 'totalReturn_3y' in filtered_df.columns and selected_return_3y != 'Todos':
+            if selected_return_3y == '> 10%':
+                filtered_df = filtered_df[filtered_df['totalReturn_3y'] > 10]
+            elif selected_return_3y == '> 5%':
+                filtered_df = filtered_df[filtered_df['totalReturn_3y'] > 5]
+            elif selected_return_3y == '> 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_3y'] > 0]
+            elif selected_return_3y == '< 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_3y'] < 0]
+        
+        if 'totalReturn_5y' in filtered_df.columns and selected_return_5y != 'Todos':
+            if selected_return_5y == '> 10%':
+                filtered_df = filtered_df[filtered_df['totalReturn_5y'] > 10]
+            elif selected_return_5y == '> 5%':
+                filtered_df = filtered_df[filtered_df['totalReturn_5y'] > 5]
+            elif selected_return_5y == '> 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_5y'] > 0]
+            elif selected_return_5y == '< 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_5y'] < 0]
+        
+        if 'totalReturn_ytd' in filtered_df.columns and selected_ytd != 'Todos':
+            if selected_ytd == '> 10%':
+                filtered_df = filtered_df[filtered_df['totalReturn_ytd'] > 10]
+            elif selected_ytd == '> 5%':
+                filtered_df = filtered_df[filtered_df['totalReturn_ytd'] > 5]
+            elif selected_ytd == '> 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_ytd'] > 0]
+            elif selected_ytd == '< 0%':
+                filtered_df = filtered_df[filtered_df['totalReturn_ytd'] < 0]
+        
+        if 'returnRankCategory_1y' in filtered_df.columns and selected_percentile != 'Todos':
+            if selected_percentile == 'Top 10%':
+                filtered_df = filtered_df[filtered_df['returnRankCategory_1y'] <= 10]
+            elif selected_percentile == 'Top 25%':
+                filtered_df = filtered_df[filtered_df['returnRankCategory_1y'] <= 25]
+            elif selected_percentile == 'Top 50%':
+                filtered_df = filtered_df[filtered_df['returnRankCategory_1y'] <= 50]
+        
+        # Risk filters
+        if 'standardDeviation_3yMonthly' in filtered_df.columns and selected_volatility != 'Todos':
+            if selected_volatility == '< 5%':
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < 5]
+            elif selected_volatility == '< 10%':
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < 10]
+            elif selected_volatility == '< 15%':
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < 15]
+            elif selected_volatility == '< 20%':
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < 20]
+            elif selected_volatility == '> 20%':
+                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] > 20]
+        
+        if 'sharpeRatio_3yMonthly' in filtered_df.columns and selected_sharpe != 'Todos':
+            if selected_sharpe == '> 2':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > 2]
+            elif selected_sharpe == '> 1.5':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > 1.5]
+            elif selected_sharpe == '> 1':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > 1]
+            elif selected_sharpe == '> 0.5':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > 0.5]
+            elif selected_sharpe == '> 0':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > 0]
+            elif selected_sharpe == '< 0':
+                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] < 0]
+        
+        if 'alpha_3yMonthly' in filtered_df.columns and selected_alpha != 'Todos':
+            if selected_alpha == '> 5':
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] > 5]
+            elif selected_alpha == '> 2':
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] > 2]
+            elif selected_alpha == '> 0':
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] > 0]
+            elif selected_alpha == '< 0':
+                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] < 0]
+        
+        if 'beta_3yMonthly' in filtered_df.columns and selected_beta != 'Todos':
+            if selected_beta == '< 0.5':
+                filtered_df = filtered_df[filtered_df['beta_3yMonthly'] < 0.5]
+            elif selected_beta == '0.5-1':
+                filtered_df = filtered_df[(filtered_df['beta_3yMonthly'] >= 0.5) & (filtered_df['beta_3yMonthly'] <= 1)]
+            elif selected_beta == '0.8-1.2':
+                filtered_df = filtered_df[(filtered_df['beta_3yMonthly'] >= 0.8) & (filtered_df['beta_3yMonthly'] <= 1.2)]
+            elif selected_beta == '> 1.2':
+                filtered_df = filtered_df[filtered_df['beta_3yMonthly'] > 1.2]
+        
+        if 'morningstarRiskRating_overall' in filtered_df.columns and selected_risk_rating != 'Todos':
+            filtered_df = filtered_df[filtered_df['morningstarRiskRating_overall'] == selected_risk_rating]
+        
+        # Cost and size filters
+        if 'ongoingCharge' in filtered_df.columns and selected_expense != 'Todos':
+            if selected_expense == '< 0.25%':
+                filtered_df = filtered_df[filtered_df['ongoingCharge'] < 0.25]
+            elif selected_expense == '< 0.5%':
                 filtered_df = filtered_df[filtered_df['ongoingCharge'] < 0.5]
             elif selected_expense == '< 1%':
                 filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1]
@@ -637,22 +904,50 @@ def main():
                 filtered_df = filtered_df[filtered_df['ongoingCharge'] < 1.5]
             elif selected_expense == '< 2%':
                 filtered_df = filtered_df[filtered_df['ongoingCharge'] < 2]
+            elif selected_expense == '> 2%':
+                filtered_df = filtered_df[filtered_df['ongoingCharge'] > 2]
         
-        if 'fundSize' in filtered_df.columns:
-            if selected_size == '> 10M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 10e6]
-            elif selected_size == '> 50M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 50e6]
-            elif selected_size == '> 100M€':
-                filtered_df = filtered_df[filtered_df['fundSize'] > 100e6]
+        if 'fundSize' in filtered_df.columns and selected_size != 'Todos':
+            if selected_size == '> 1000M€':
+                filtered_df = filtered_df[filtered_df['fundSize'] > 1000e6]
             elif selected_size == '> 500M€':
                 filtered_df = filtered_df[filtered_df['fundSize'] > 500e6]
+            elif selected_size == '> 100M€':
+                filtered_df = filtered_df[filtered_df['fundSize'] > 100e6]
+            elif selected_size == '> 50M€':
+                filtered_df = filtered_df[filtered_df['fundSize'] > 50e6]
+            elif selected_size == '> 10M€':
+                filtered_df = filtered_df[filtered_df['fundSize'] > 10e6]
+            elif selected_size == '< 10M€':
+                filtered_df = filtered_df[filtered_df['fundSize'] < 10e6]
         
-        if selected_esg > 0 and 'sustainabilityRating' in filtered_df.columns:
-            filtered_df = filtered_df[
-                (filtered_df['sustainabilityRating'] >= selected_esg) |
-                filtered_df['sustainabilityRating'].isna()
-            ]
+        if 'fund_age_years' in filtered_df.columns and selected_age != 'Todos':
+            if selected_age == '> 10 años':
+                filtered_df = filtered_df[filtered_df['fund_age_years'] > 10]
+            elif selected_age == '> 5 años':
+                filtered_df = filtered_df[filtered_df['fund_age_years'] > 5]
+            elif selected_age == '> 3 años':
+                filtered_df = filtered_df[filtered_df['fund_age_years'] > 3]
+            elif selected_age == '> 1 año':
+                filtered_df = filtered_df[filtered_df['fund_age_years'] > 1]
+            elif selected_age == '< 1 año':
+                filtered_df = filtered_df[filtered_df['fund_age_years'] < 1]
+        
+        if 'isIndexFund' in filtered_df.columns and selected_index != 'Todos':
+            if selected_index == 'Solo Indexados':
+                filtered_df = filtered_df[filtered_df['isIndexFund'] == True]
+            elif selected_index == 'Solo Activos':
+                filtered_df = filtered_df[filtered_df['isIndexFund'] == False]
+        
+        if 'maximumEntryCost' in filtered_df.columns and selected_entry_fee != 'Todos':
+            if selected_entry_fee == 'Sin comisión':
+                filtered_df = filtered_df[(filtered_df['maximumEntryCost'] == 0) | filtered_df['maximumEntryCost'].isna()]
+            elif selected_entry_fee == '< 1%':
+                filtered_df = filtered_df[filtered_df['maximumEntryCost'] < 1]
+            elif selected_entry_fee == '< 3%':
+                filtered_df = filtered_df[filtered_df['maximumEntryCost'] < 3]
+            elif selected_entry_fee == '< 5%':
+                filtered_df = filtered_df[filtered_df['maximumEntryCost'] < 5]
         
         st.markdown("---")
         
@@ -744,12 +1039,8 @@ def main():
                 elif col in ['isIndexFund', 'hasPerformanceFee']:
                     display_df[col] = display_df[col].apply(lambda x: '✓' if x else '✗' if not pd.isna(x) else "N/D")
             
-            # Apply translations
-            column_translations = {}
-            for category, cols in COLUMN_DEFINITIONS.items():
-                column_translations.update(cols)
-            
-            rename_dict = {col: column_translations.get(col, col) for col in display_df.columns}
+            # Apply translations using the comprehensive dictionary
+            rename_dict = {col: ALL_COLUMN_TRANSLATIONS.get(col, col) for col in display_df.columns}
             display_df = display_df.rename(columns=rename_dict)
             
             # Display results
@@ -840,201 +1131,357 @@ def main():
         if len(filtered_df) > 0:
             fund_names = sorted(filtered_df['name'].dropna().unique())
             
-            selected_funds = st.multiselect(
-                "📌 Selecciona fondos para comparar (máximo 10)",
-                options=fund_names,
-                max_selections=10,
-                help="Elige hasta 10 fondos para comparación detallada"
-            )
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                selected_funds = st.multiselect(
+                    "📌 Selecciona fondos para comparar (máximo 10)",
+                    options=fund_names,
+                    max_selections=10,
+                    help="Elige hasta 10 fondos para comparación detallada"
+                )
+            
+            with col2:
+                if selected_funds:
+                    if st.button("🗑️ Limpiar selección", type="secondary"):
+                        selected_funds = []
             
             if selected_funds:
                 comparison_df = filtered_df[filtered_df['name'].isin(selected_funds)]
                 
-                # Heatmap of returns
-                st.markdown("#### 🔥 **Mapa de Calor - Retornos**")
-                fig = create_performance_heatmap(filtered_df, selected_funds)
-                st.plotly_chart(fig, use_container_width=True)
+                # Quick comparison metrics
+                st.markdown("#### 📊 **Resumen Comparativo**")
                 
-                # Comparison table
-                st.markdown("#### 📊 **Tabla Comparativa**")
+                metric_cols = st.columns(len(selected_funds) if len(selected_funds) <= 5 else 5)
+                for i, fund in enumerate(selected_funds[:5]):
+                    fund_data = comparison_df[comparison_df['name'] == fund].iloc[0]
+                    with metric_cols[i]:
+                        st.markdown(f"**{fund[:25]}...**")
+                        
+                        ret_1y = fund_data.get('totalReturn_1y', np.nan)
+                        sharpe = fund_data.get('sharpeRatio_3yMonthly', np.nan)
+                        expense = fund_data.get('ongoingCharge', np.nan)
+                        stars = fund_data.get('fundStarRating_overall', np.nan)
+                        
+                        st.metric("Retorno 1A", f"{ret_1y:.1f}%" if not pd.isna(ret_1y) else "N/D")
+                        st.metric("Sharpe 3A", f"{sharpe:.2f}" if not pd.isna(sharpe) else "N/D")
+                        st.metric("Gastos", f"{expense:.2f}%" if not pd.isna(expense) else "N/D")
+                        st.metric("Rating", f"⭐ {int(stars)}" if not pd.isna(stars) else "N/D")
                 
-                # Select metrics to compare
-                categories_to_compare = st.multiselect(
-                    "Selecciona categorías de métricas",
-                    options=list(COLUMN_DEFINITIONS.keys()),
-                    default=['Retornos', 'Riesgo Ajustado', 'Costes', 'Ratings']
-                )
-                
-                # Build comparison metrics
-                comparison_metrics = ['name']
-                for cat in categories_to_compare:
-                    comparison_metrics.extend([col for col in COLUMN_DEFINITIONS[cat].keys() 
-                                             if col in comparison_df.columns])
-                
-                if len(comparison_metrics) > 1:
-                    comp_display = comparison_df[comparison_metrics].set_index('name').T
-                    
-                    # Apply translations
-                    index_translations = {}
-                    for category, cols in COLUMN_DEFINITIONS.items():
-                        index_translations.update(cols)
-                    
-                    comp_display.index = comp_display.index.map(lambda x: index_translations.get(x, x))
-                    
-                    st.dataframe(comp_display, use_container_width=True, height=400)
-                
-                # Scatter plot configuration
                 st.markdown("---")
-                st.markdown("#### 📈 **Gráfico de Dispersión Configurable**")
                 
-                # Get numeric columns for scatter plot
-                numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+                # Tabbed comparison views
+                comp_tabs = st.tabs(["📈 Retornos", "⚡ Riesgo", "💰 Costes", "📊 Gráficos", "📋 Tabla Completa"])
                 
-                # Create friendly names for the columns
-                friendly_names = {}
-                for col in numeric_cols:
-                    if col in ALL_COLUMN_TRANSLATIONS:
-                        friendly_names[col] = ALL_COLUMN_TRANSLATIONS[col]
-                    else:
-                        # Create a friendly name for columns not in translations
-                        friendly_name = col.replace('_', ' ').replace('[', ' ').replace(']', '')
-                        friendly_name = friendly_name.replace('Monthly', ' Mensual')
-                        friendly_name = friendly_name.replace('Return', 'Retorno')
-                        friendly_name = friendly_name.replace('totalReturn', 'Retorno')
-                        friendly_name = friendly_name.replace('standardDeviation', 'Volatilidad')
-                        friendly_name = friendly_name.replace('sharpeRatio', 'Ratio Sharpe')
-                        friendly_names[col] = friendly_name.title()
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    # Default to volatility if available
-                    default_x = 'standardDeviation_3yMonthly' if 'standardDeviation_3yMonthly' in numeric_cols else numeric_cols[0] if numeric_cols else None
+                with comp_tabs[0]:  # Returns comparison
+                    st.markdown("#### 📈 Comparación de Retornos")
                     
-                    x_axis = st.selectbox(
-                        "📊 Eje X",
-                        options=numeric_cols,
-                        format_func=lambda x: friendly_names.get(x, x),
-                        index=numeric_cols.index(default_x) if default_x in numeric_cols else 0,
-                        help="Selecciona la métrica para el eje horizontal"
-                    )
-                
-                with col2:
-                    # Default to return if available
-                    default_y = 'totalReturn_3y' if 'totalReturn_3y' in numeric_cols else numeric_cols[0] if numeric_cols else None
-                    
-                    y_axis = st.selectbox(
-                        "📈 Eje Y",
-                        options=numeric_cols,
-                        format_func=lambda x: friendly_names.get(x, x),
-                        index=numeric_cols.index(default_y) if default_y in numeric_cols else 0,
-                        help="Selecciona la métrica para el eje vertical"
-                    )
-                
-                with col3:
-                    # Size variable with None option
-                    size_options = ['Ninguno'] + numeric_cols
-                    default_size = 'fundSize' if 'fundSize' in numeric_cols else 'Ninguno'
-                    
-                    size_var = st.selectbox(
-                        "⭕ Tamaño de punto",
-                        options=size_options,
-                        format_func=lambda x: 'Sin tamaño variable' if x == 'Ninguno' else friendly_names.get(x, x),
-                        index=size_options.index(default_size),
-                        help="Variable para determinar el tamaño de los puntos (opcional)"
-                    )
-                
-                # Create scatter plot
-                if x_axis and y_axis:
-                    scatter_data = filtered_df.dropna(subset=[x_axis, y_axis]).copy()
-                    
-                    # Handle size variable
-                    if size_var != 'Ninguno':
-                        scatter_data[size_var] = scatter_data[size_var].fillna(scatter_data[size_var].median())
-                        size_col = size_var
-                    else:
-                        size_col = None
-                    
-                    # Get friendly names for axis labels
-                    x_label = friendly_names.get(x_axis, x_axis)
-                    y_label = friendly_names.get(y_axis, y_axis)
-                    
-                    fig = px.scatter(
-                        scatter_data,
-                        x=x_axis,
-                        y=y_axis,
-                        color='fund_type',
-                        size=size_col if size_col else None,
-                        hover_data=['name', 'firmName', 'morningstarCategory'],
-                        title=f"{y_label} vs {x_label}",
-                        labels={
-                            x_axis: x_label,
-                            y_axis: y_label,
-                            'fund_type': 'Tipo de Fondo',
-                            size_var: friendly_names.get(size_var, size_var) if size_var != 'Ninguno' else None
-                        },
-                        color_discrete_map={
-                            'Renta Variable': '#3b82f6',
-                            'Renta Fija': '#10b981',
-                            'Alternativo': '#f59e0b',
-                            'Mixto/Otro': '#8b5cf6'
-                        }
-                    )
-                    
-                    # Add median lines
-                    x_median = scatter_data[x_axis].median()
-                    y_median = scatter_data[y_axis].median()
-                    
-                    fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5,
-                                 annotation_text=f"Mediana: {y_median:.2f}")
-                    fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5,
-                                 annotation_text=f"Mediana: {x_median:.2f}")
-                    
-                    # Highlight selected funds
-                    if selected_funds:
-                        selected_data = scatter_data[scatter_data['name'].isin(selected_funds)]
-                        if not selected_data.empty:
-                            fig.add_trace(go.Scatter(
-                                x=selected_data[x_axis],
-                                y=selected_data[y_axis],
-                                mode='markers',
-                                marker=dict(
-                                    size=15,
-                                    color='red',
-                                    symbol='star',
-                                    line=dict(color='white', width=2)
-                                ),
-                                name='Fondos Seleccionados',
-                                showlegend=True,
-                                hovertemplate='<b>%{text}</b><br>' + 
-                                            f'{x_label}: ' + '%{x:.2f}<br>' +
-                                            f'{y_label}: ' + '%{y:.2f}<extra></extra>',
-                                text=selected_data['name']
-                            ))
-                    
-                    fig.update_layout(
-                        paper_bgcolor='#0e1117',
-                        plot_bgcolor='#1a1f2e',
-                        font=dict(color='#fafafa'),
-                        height=600,
-                        xaxis=dict(
-                            gridcolor='#2d3748',
-                            zeroline=False,
-                            title=x_label
-                        ),
-                        yaxis=dict(
-                            gridcolor='#2d3748',
-                            zeroline=False,
-                            title=y_label
-                        ),
-                        hoverlabel=dict(
-                            bgcolor="#1a1f2e",
-                            font_size=12,
-                            font_family="Arial"
-                        )
-                    )
-                    
+                    # Returns heatmap
+                    fig = create_performance_heatmap(filtered_df, selected_funds)
                     st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Bar chart comparison
+                    return_periods = ['totalReturn_1y', 'totalReturn_3y', 'totalReturn_5y']
+                    return_data = []
+                    for fund in selected_funds:
+                        fund_info = comparison_df[comparison_df['name'] == fund].iloc[0]
+                        for period in return_periods:
+                            if period in comparison_df.columns:
+                                return_data.append({
+                                    'Fondo': fund[:25] + '...' if len(fund) > 25 else fund,
+                                    'Período': ALL_COLUMN_TRANSLATIONS.get(period, period),
+                                    'Retorno': fund_info.get(period, 0)
+                                })
+                    
+                    if return_data:
+                        df_returns = pd.DataFrame(return_data)
+                        fig = px.bar(df_returns, x='Período', y='Retorno', color='Fondo',
+                                    title="Comparación de Retornos por Período",
+                                    barmode='group')
+                        fig.update_layout(
+                            paper_bgcolor='#0e1117',
+                            plot_bgcolor='#1a1f2e',
+                            font=dict(color='#fafafa'),
+                            height=400
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                with comp_tabs[1]:  # Risk comparison
+                    st.markdown("#### ⚡ Comparación de Riesgo")
+                    
+                    risk_metrics = ['standardDeviation_1yMonthly', 'standardDeviation_3yMonthly',
+                                   'beta_1yMonthly', 'beta_3yMonthly', 'morningstarRiskRating_overall']
+                    
+                    risk_data = []
+                    for fund in selected_funds:
+                        fund_info = comparison_df[comparison_df['name'] == fund].iloc[0]
+                        risk_row = {'Fondo': fund[:30] + '...' if len(fund) > 30 else fund}
+                        for metric in risk_metrics:
+                            if metric in comparison_df.columns:
+                                risk_row[ALL_COLUMN_TRANSLATIONS.get(metric, metric)] = fund_info.get(metric, np.nan)
+                        risk_data.append(risk_row)
+                    
+                    if risk_data:
+                        risk_df = pd.DataFrame(risk_data)
+                        
+                        # Format numeric columns
+                        for col in risk_df.columns:
+                            if col != 'Fondo':
+                                risk_df[col] = risk_df[col].apply(lambda x: f"{x:.2f}" if not pd.isna(x) and isinstance(x, (int, float)) else x)
+                        
+                        st.dataframe(risk_df, use_container_width=True, hide_index=True)
+                        
+                        # Risk radar chart
+                        if 'standardDeviation_3yMonthly' in comparison_df.columns and 'beta_3yMonthly' in comparison_df.columns:
+                            fig = go.Figure()
+                            
+                            for fund in selected_funds:
+                                fund_data = comparison_df[comparison_df['name'] == fund].iloc[0]
+                                
+                                categories = []
+                                values = []
+                                
+                                if not pd.isna(fund_data.get('standardDeviation_1yMonthly')):
+                                    categories.append('Vol 1A')
+                                    values.append(fund_data['standardDeviation_1yMonthly'])
+                                
+                                if not pd.isna(fund_data.get('standardDeviation_3yMonthly')):
+                                    categories.append('Vol 3A')
+                                    values.append(fund_data['standardDeviation_3yMonthly'])
+                                
+                                if not pd.isna(fund_data.get('beta_3yMonthly')):
+                                    categories.append('Beta 3A')
+                                    values.append(abs(fund_data['beta_3yMonthly']) * 10)  # Scale for visibility
+                                
+                                if categories and values:
+                                    fig.add_trace(go.Scatterpolar(
+                                        r=values,
+                                        theta=categories,
+                                        fill='toself',
+                                        name=fund[:25] + '...' if len(fund) > 25 else fund
+                                    ))
+                            
+                            fig.update_layout(
+                                polar=dict(
+                                    radialaxis=dict(
+                                        visible=True,
+                                        gridcolor='#2d3748'
+                                    ),
+                                    bgcolor='#1a1f2e'
+                                ),
+                                showlegend=True,
+                                paper_bgcolor='#0e1117',
+                                font=dict(color='#fafafa'),
+                                title="Perfil de Riesgo Comparativo",
+                                height=400
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                
+                with comp_tabs[2]:  # Costs comparison
+                    st.markdown("#### 💰 Comparación de Costes")
+                    
+                    cost_metrics = ['ongoingCharge', 'maximumEntryCost', 'maximumExitCost', 
+                                   'maximumManagementFee', 'hasPerformanceFee']
+                    
+                    cost_data = []
+                    for fund in selected_funds:
+                        fund_info = comparison_df[comparison_df['name'] == fund].iloc[0]
+                        cost_row = {'Fondo': fund[:30] + '...' if len(fund) > 30 else fund}
+                        for metric in cost_metrics:
+                            if metric in comparison_df.columns:
+                                value = fund_info.get(metric, np.nan)
+                                if metric == 'hasPerformanceFee':
+                                    cost_row[ALL_COLUMN_TRANSLATIONS.get(metric, metric)] = '✓' if value else '✗'
+                                else:
+                                    cost_row[ALL_COLUMN_TRANSLATIONS.get(metric, metric)] = f"{value:.2f}%" if not pd.isna(value) else "N/D"
+                        cost_data.append(cost_row)
+                    
+                    if cost_data:
+                        cost_df = pd.DataFrame(cost_data)
+                        st.dataframe(cost_df, use_container_width=True, hide_index=True)
+                        
+                        # Cost bar chart
+                        if 'ongoingCharge' in comparison_df.columns:
+                            costs = []
+                            for fund in selected_funds:
+                                fund_data = comparison_df[comparison_df['name'] == fund].iloc[0]
+                                costs.append({
+                                    'Fondo': fund[:25] + '...' if len(fund) > 25 else fund,
+                                    'Gastos Corrientes': fund_data.get('ongoingCharge', 0)
+                                })
+                            
+                            df_costs = pd.DataFrame(costs)
+                            fig = px.bar(df_costs, x='Fondo', y='Gastos Corrientes',
+                                       title="Comparación de Gastos Corrientes (%)",
+                                       text='Gastos Corrientes')
+                            fig.update_traces(texttemplate='%{text:.2f}%', textposition='outside')
+                            fig.update_layout(
+                                paper_bgcolor='#0e1117',
+                                plot_bgcolor='#1a1f2e',
+                                font=dict(color='#fafafa'),
+                                height=400
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                
+                with comp_tabs[3]:  # Charts
+                    st.markdown("#### 📈 **Gráfico de Dispersión Configurable**")
+                    
+                    # Get numeric columns for scatter plot
+                    numeric_cols = filtered_df.select_dtypes(include=[np.number]).columns.tolist()
+                    
+                    # Create friendly names for the columns
+                    friendly_names = {}
+                    for col in numeric_cols:
+                        if col in ALL_COLUMN_TRANSLATIONS:
+                            friendly_names[col] = ALL_COLUMN_TRANSLATIONS[col]
+                        else:
+                            friendly_name = col.replace('_', ' ').replace('[', ' ').replace(']', '')
+                            friendly_names[col] = friendly_name.title()
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        default_x = 'standardDeviation_3yMonthly' if 'standardDeviation_3yMonthly' in numeric_cols else numeric_cols[0] if numeric_cols else None
+                        
+                        x_axis = st.selectbox(
+                            "📊 Eje X",
+                            options=numeric_cols,
+                            format_func=lambda x: friendly_names.get(x, x),
+                            index=numeric_cols.index(default_x) if default_x in numeric_cols else 0,
+                            help="Selecciona la métrica para el eje horizontal"
+                        )
+                    
+                    with col2:
+                        default_y = 'totalReturn_3y' if 'totalReturn_3y' in numeric_cols else numeric_cols[0] if numeric_cols else None
+                        
+                        y_axis = st.selectbox(
+                            "📈 Eje Y",
+                            options=numeric_cols,
+                            format_func=lambda x: friendly_names.get(x, x),
+                            index=numeric_cols.index(default_y) if default_y in numeric_cols else 0,
+                            help="Selecciona la métrica para el eje vertical"
+                        )
+                    
+                    with col3:
+                        size_options = ['Ninguno'] + numeric_cols
+                        default_size = 'fundSize' if 'fundSize' in numeric_cols else 'Ninguno'
+                        
+                        size_var = st.selectbox(
+                            "⭕ Tamaño de punto",
+                            options=size_options,
+                            format_func=lambda x: 'Sin tamaño variable' if x == 'Ninguno' else friendly_names.get(x, x),
+                            index=size_options.index(default_size),
+                            help="Variable para determinar el tamaño de los puntos"
+                        )
+                    
+                    # Create scatter plot
+                    if x_axis and y_axis:
+                        scatter_data = filtered_df.dropna(subset=[x_axis, y_axis]).copy()
+                        
+                        if size_var != 'Ninguno':
+                            scatter_data[size_var] = scatter_data[size_var].fillna(scatter_data[size_var].median())
+                            size_col = size_var
+                        else:
+                            size_col = None
+                        
+                        x_label = friendly_names.get(x_axis, x_axis)
+                        y_label = friendly_names.get(y_axis, y_axis)
+                        
+                        fig = px.scatter(
+                            scatter_data,
+                            x=x_axis,
+                            y=y_axis,
+                            color='fund_type',
+                            size=size_col if size_col else None,
+                            hover_data=['name', 'firmName', 'morningstarCategory'],
+                            title=f"{y_label} vs {x_label}",
+                            labels={
+                                x_axis: x_label,
+                                y_axis: y_label,
+                                'fund_type': 'Tipo de Fondo',
+                                size_var: friendly_names.get(size_var, size_var) if size_var != 'Ninguno' else None
+                            },
+                            color_discrete_map={
+                                'Renta Variable': '#3b82f6',
+                                'Renta Fija': '#10b981',
+                                'Alternativo': '#f59e0b',
+                                'Mixto/Otro': '#8b5cf6'
+                            }
+                        )
+                        
+                        # Add median lines
+                        x_median = scatter_data[x_axis].median()
+                        y_median = scatter_data[y_axis].median()
+                        
+                        fig.add_hline(y=y_median, line_dash="dash", line_color="gray", opacity=0.5,
+                                     annotation_text=f"Mediana: {y_median:.2f}")
+                        fig.add_vline(x=x_median, line_dash="dash", line_color="gray", opacity=0.5,
+                                     annotation_text=f"Mediana: {x_median:.2f}")
+                        
+                        # Highlight selected funds
+                        if selected_funds:
+                            selected_data = scatter_data[scatter_data['name'].isin(selected_funds)]
+                            if not selected_data.empty:
+                                fig.add_trace(go.Scatter(
+                                    x=selected_data[x_axis],
+                                    y=selected_data[y_axis],
+                                    mode='markers',
+                                    marker=dict(
+                                        size=15,
+                                        color='red',
+                                        symbol='star',
+                                        line=dict(color='white', width=2)
+                                    ),
+                                    name='Fondos Seleccionados',
+                                    showlegend=True,
+                                    hovertemplate='<b>%{text}</b><br>' + 
+                                                f'{x_label}: ' + '%{x:.2f}<br>' +
+                                                f'{y_label}: ' + '%{y:.2f}<extra></extra>',
+                                    text=selected_data['name']
+                                ))
+                        
+                        fig.update_layout(
+                            paper_bgcolor='#0e1117',
+                            plot_bgcolor='#1a1f2e',
+                            font=dict(color='#fafafa'),
+                            height=600,
+                            xaxis=dict(gridcolor='#2d3748', zeroline=False, title=x_label),
+                            yaxis=dict(gridcolor='#2d3748', zeroline=False, title=y_label)
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                with comp_tabs[4]:  # Complete table
+                    st.markdown("#### 📋 **Tabla Comparativa Completa**")
+                    
+                    # Select categories to compare
+                    categories_to_compare = st.multiselect(
+                        "Selecciona categorías de métricas",
+                        options=list(COLUMN_DEFINITIONS.keys()),
+                        default=['Retornos', 'Riesgo Ajustado', 'Costes', 'Ratings']
+                    )
+                    
+                    # Build comparison metrics
+                    comparison_metrics = ['name']
+                    for cat in categories_to_compare:
+                        comparison_metrics.extend([col for col in COLUMN_DEFINITIONS[cat].keys() 
+                                                 if col in comparison_df.columns])
+                    
+                    if len(comparison_metrics) > 1:
+                        comp_display = comparison_df[comparison_metrics].set_index('name').T
+                        
+                        # Apply translations
+                        comp_display.index = comp_display.index.map(lambda x: ALL_COLUMN_TRANSLATIONS.get(x, x))
+                        
+                        st.dataframe(comp_display, use_container_width=True, height=500)
+                        
+                        # Export comparison
+                        csv = comparison_df[comparison_metrics].to_csv(index=False)
+                        st.download_button(
+                            label="📥 Descargar comparación CSV",
+                            data=csv,
+                            file_name=f"comparacion_fondos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv"
+                        )
             else:
                 st.info("👆 Selecciona fondos arriba para comenzar la comparación")
         else:
