@@ -1007,34 +1007,43 @@ def main():
                     if col_key in available_columns:
                         sort_translations[col_name] = col_key
             
+            # Map period to metric suffixes for dynamic sorting
+            period_suffix_map = {
+                '1 Año': '_1yMonthly',
+                '3 Años': '_3yMonthly',
+                '5 Años': '_5yMonthly',
+                'YTD': '_1yMonthly'
+            }
+            period_suffix = period_suffix_map.get(selected_return_period, '_3yMonthly')
+            
             # Prioritize common sorting options
             priority_options = [
                 '📈 Retorno 1 Año %', 
                 '📊 Retorno 3 Años %', 
                 '💰 Retorno 5 Años %',
-                '🎯 Ratio Sharpe 3 Años',
+                '🎯 Ratio Sharpe ⏱️',
                 '💼 Patrimonio Fondo €', 
                 '💵 Gastos Corrientes %', 
                 '⭐ Rating General',
                 '🌱 Rating ESG', 
-                '📉 Volatilidad 3 Años %', 
-                '🔥 Alpha 3 Años %',
+                '📉 Volatilidad ⏱️', 
+                '🔥 Alpha ⏱️',
                 '📊 Percentil Categoría 1 Año',
                 '💎 Inversión Mínima €'
             ]
             
-            # Map priority options to actual columns
+            # Map priority options to actual columns - time-linked ones use selected period
             priority_mapping = {
                 '📈 Retorno 1 Año %': 'totalReturn_1y',
                 '📊 Retorno 3 Años %': 'totalReturn_3y',
                 '💰 Retorno 5 Años %': 'totalReturn_5y',
-                '🎯 Ratio Sharpe 3 Años': 'sharpeRatio_3yMonthly',
+                '🎯 Ratio Sharpe ⏱️': f'sharpeRatio{period_suffix}',
                 '💼 Patrimonio Fondo €': 'fundSize',
                 '💵 Gastos Corrientes %': 'ongoingCharge',
                 '⭐ Rating General': 'fundStarRating_overall',
                 '🌱 Rating ESG': 'sustainabilityRating',
-                '📉 Volatilidad 3 Años %': 'standardDeviation_3yMonthly',
-                '🔥 Alpha 3 Años %': 'alpha_3yMonthly',
+                '📉 Volatilidad ⏱️': f'standardDeviation{period_suffix}',
+                '🔥 Alpha ⏱️': f'alpha{period_suffix}',
                 '📊 Percentil Categoría 1 Año': 'returnRankCategory_1y',
                 '💎 Inversión Mínima €': 'minimumInitialInvestment'
             }
@@ -1046,7 +1055,7 @@ def main():
             other_options = []
             for name, col in sort_translations.items():
                 display_name = name
-                if col not in priority_mapping.values():
+                if col not in [priority_mapping[p] for p in priority_mapping]:
                     other_options.append((display_name, col))
             
             # Combine all options
