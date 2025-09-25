@@ -747,30 +747,30 @@ def main():
         
         with filter_row3[0]:
             selected_sharpe = st.selectbox(
-                "🎯 **Ratio Sharpe (3A)**",
-                options=['Todos', '> 2.0 💎 Excepcional', '> 1.5 Excelente', '> 1.0 Bueno', '> 0.5', '> 0', '< 0 ⚠️'],
-                help="Retorno ajustado al riesgo"
+                "🎯 **Sharpe** ⏱️",
+                options=['Todos', '> 2.0', '> 1.5', '> 1.0', '> 0.5', '> 0', '< 0'],
+                help="Sincronizado con el período seleccionado arriba"
             )
         
         with filter_row3[1]:
             selected_alpha = st.selectbox(
-                "🔥 **Alpha (3A)**",
-                options=['Todos', '> 5% 🚀', '> 3%', '> 1%', '> 0%', '< 0% ⚠️'],
-                help="Exceso de retorno vs benchmark"
+                "🔥 **Alpha** ⏱️",
+                options=['Todos', '> 5%', '> 3%', '> 1%', '> 0%', '< 0%'],
+                help="Sincronizado con el período seleccionado arriba"
             )
         
         with filter_row3[2]:
             selected_age = st.selectbox(
-                "⏳ **Antigüedad del Fondo**",
-                options=['Todos', '> 10 años', '> 5 años', '> 3 años', '> 1 año', '< 1 año 🆕'],
-                help="Años desde el inicio del fondo"
+                "⏳ **Antigüedad**",
+                options=['Todos', '> 10 años', '> 5 años', '> 3 años', '> 1 año', '< 1 año'],
+                help="Años desde inicio del fondo"
             )
         
         with filter_row3[3]:
             selected_index = st.selectbox(
-                "🤖 **Tipo de Gestión**",
-                options=['Todos', 'Gestión Activa', 'Gestión Pasiva (Indexado)'],
-                help="Estrategia de gestión del fondo"
+                "🤖 **Gestión**",
+                options=['Todos', 'Activa', 'Pasiva (Indexado)'],
+                help="Tipo de gestión del fondo"
             )
         
         # Fourth row of filters for share class and distribution characteristics
