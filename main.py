@@ -843,7 +843,17 @@ def main():
             'YTD': 'totalReturn_ytd'
         }
         
+        # Map period to metric suffixes for other metrics
+        period_suffix_map = {
+            '1 Año': '_1yMonthly',
+            '3 Años': '_3yMonthly',
+            '5 Años': '_5yMonthly',
+            'YTD': '_1yMonthly'  # Use 1Y metrics for YTD
+        }
+        
         return_col = return_col_map.get(selected_return_period, 'totalReturn_1y')
+        period_suffix = period_suffix_map.get(selected_return_period, '_3yMonthly')
+        
         if return_col in filtered_df.columns and selected_return != 'Todos':
             return_value = selected_return.split('%')[0].split('>')[-1].split('<')[-1].strip()
             
@@ -898,30 +908,33 @@ def main():
                     filtered_df['sustainabilityRating'].isna()
                 ]
         
-        # Apply volatility filter
-        if 'standardDeviation_3yMonthly' in filtered_df.columns and selected_volatility != 'Todos':
+        # Apply volatility filter - NOW USING SELECTED PERIOD
+        volatility_col = f'standardDeviation{period_suffix}'
+        if volatility_col in filtered_df.columns and selected_volatility != 'Todos':
             vol_value = selected_volatility.split('%')[0].split('>')[-1].split('<')[-1].strip()
             if '>' in selected_volatility:
-                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] > float(vol_value)]
+                filtered_df = filtered_df[filtered_df[volatility_col] > float(vol_value)]
             elif '<' in selected_volatility:
-                filtered_df = filtered_df[filtered_df['standardDeviation_3yMonthly'] < float(vol_value)]
+                filtered_df = filtered_df[filtered_df[volatility_col] < float(vol_value)]
         
-        # Apply Sharpe filter
-        if 'sharpeRatio_3yMonthly' in filtered_df.columns and selected_sharpe != 'Todos':
+        # Apply Sharpe filter - NOW USING SELECTED PERIOD
+        sharpe_col = f'sharpeRatio{period_suffix}'
+        if sharpe_col in filtered_df.columns and selected_sharpe != 'Todos':
             sharpe_value = selected_sharpe.split()[1] if '>' in selected_sharpe or '<' in selected_sharpe else selected_sharpe
             if '>' in selected_sharpe:
                 threshold = float(sharpe_value)
-                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > threshold]
+                filtered_df = filtered_df[filtered_df[sharpe_col] > threshold]
             elif '<' in selected_sharpe:
-                filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] < 0]
+                filtered_df = filtered_df[filtered_df[sharpe_col] < 0]
         
-        # Apply Alpha filter
-        if 'alpha_3yMonthly' in filtered_df.columns and selected_alpha != 'Todos':
+        # Apply Alpha filter - NOW USING SELECTED PERIOD
+        alpha_col = f'alpha{period_suffix}'
+        if alpha_col in filtered_df.columns and selected_alpha != 'Todos':
             alpha_value = selected_alpha.split('%')[0].split('>')[-1].split('<')[-1].strip()
             if '>' in selected_alpha:
-                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] > float(alpha_value)]
+                filtered_df = filtered_df[filtered_df[alpha_col] > float(alpha_value)]
             elif '<' in selected_alpha:
-                filtered_df = filtered_df[filtered_df['alpha_3yMonthly'] < float(alpha_value)]
+                filtered_df = filtered_df[filtered_df[alpha_col] < float(alpha_value)]
         
         # Apply age filter
         if 'fund_age_years' in filtered_df.columns and selected_age != 'Todos':
