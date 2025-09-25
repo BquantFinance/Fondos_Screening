@@ -695,6 +695,9 @@ def main():
                 help=f"Filtro de retorno {selected_return_period}"
             )
         
+        # Info banner showing current period for time-based metrics
+        st.info(f"⏱️ **Período activo: {selected_return_period}** - Los filtros de Volatilidad, Sharpe y Alpha usan datos de este período")
+        
         # Second row of filters
         filter_row2 = st.columns(4)
         
