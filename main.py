@@ -209,7 +209,7 @@ st.markdown("""
 # Load data with caching
 @st.cache_data
 def load_data():
-    df = pd.read_csv('Fondos_España.csv', index_col=0)
+    df = pd.read_csv('Fondos_España.csv')
     
     # Clean column names (remove brackets)
     df.columns = df.columns.str.replace(r'\[', '_', regex=True).str.replace(r'\]', '', regex=True)
@@ -555,7 +555,7 @@ def main():
         <h1 style='text-align: center; color: #fafafa; padding: 20px 0; margin-bottom: 0; 
                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                    border-radius: 16px; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);'>
-            🔍 Screener BQuant - Fondos Españoles
+            🔍 Screener Profesional - Fondos Españoles
         </h1>
     """, unsafe_allow_html=True)
     
@@ -565,9 +565,9 @@ def main():
     with col1:
         st.markdown("""
             <div class="newsletter-banner">
-                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita BQuantFundLab</h3>
+                <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>📈 Newsletter Gratuita</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Análisis de fondos de inversión y todo lo que les rodea.
+                    Análisis cuantitativo profesional
                 </p>
                 <a href="https://bquantfundlab.substack.com/" target="_blank" class="newsletter-button">
                     Suscríbete →
@@ -580,7 +580,7 @@ def main():
             <div class="survivorship-banner">
                 <h3 style='color: white; margin: 0 0 8px 0; font-size: 1.2em;'>⚠️ Sesgo de Supervivencia</h3>
                 <p style='color: rgba(255,255,255,0.95); margin: 0 0 12px 0; font-size: 0.95em;'>
-                    Lo que no te cuentan en la industria.
+                    Análisis de fondos cerrados
                 </p>
                 <a href="https://fondossupervivientes.streamlit.app/" target="_blank" class="survivorship-button">
                     Explorar →
@@ -635,35 +635,70 @@ def main():
         st.markdown('<div class="filter-section">', unsafe_allow_html=True)
         
         # First row of filters
-        filter_row1 = st.columns(4)
+        filter_row1 = st.columns(5)
         
         with filter_row1[0]:
-            if 'fund_type' in df.columns:
-                fund_types_available = ['Todos'] + df['fund_type'].dropna().unique().tolist()
+            # Broad Category Group filter
+            if 'broadCategoryGroup' in df.columns:
+                broad_categories = ['Todas'] + sorted(df['broadCategoryGroup'].dropna().unique().tolist())
             else:
-                fund_types_available = ['Todos']
+                broad_categories = ['Todas']
             
-            selected_fund_type = st.selectbox(
-                "💼 **Categoría de Inversión**",
-                options=fund_types_available,
-                help="Tipo de activo del fondo"
+            selected_broad_category = st.selectbox(
+                "🏢 **Grupo Categoría**",
+                options=broad_categories,
+                help="Categoría amplia del fondo (Equity, Fixed Income, etc.)"
             )
         
         with filter_row1[1]:
-            selected_stars = st.selectbox(
-                "⭐ **Calidad del Fondo**",
-                options=['Todos', '⭐⭐⭐⭐⭐ Excelente', '⭐⭐⭐⭐ Muy Bueno', '⭐⭐⭐ Bueno', '⭐⭐ Regular', '⭐ Bajo'],
-                help="Calificación Morningstar del fondo"
+            # Morningstar Category filter
+            if 'morningstarCategory' in df.columns:
+                # Filter categories based on selected broad category if applicable
+                if selected_broad_category != 'Todas' and 'broadCategoryGroup' in df.columns:
+                    filtered_cats_df = df[df['broadCategoryGroup'] == selected_broad_category]
+                    categories = ['Todas'] + sorted(filtered_cats_df['morningstarCategory'].dropna().unique().tolist())
+                else:
+                    categories = ['Todas'] + sorted(df['morningstarCategory'].dropna().unique().tolist())
+            else:
+                categories = ['Todas']
+            
+            selected_category = st.selectbox(
+                "📂 **Cat. Morningstar**",
+                options=categories,
+                help="Categoría específica según Morningstar"
             )
         
         with filter_row1[2]:
-            selected_return_period = st.selectbox(
-                "📊 **Período de Retorno**",
-                options=['1 Año', '3 Años', '5 Años', 'YTD'],
-                help="Período para evaluar retornos"
+            selected_stars = st.selectbox(
+                "⭐ **Rating**",
+                options=['Todos', '⭐⭐⭐⭐⭐', '⭐⭐⭐⭐+', '⭐⭐⭐+', '⭐⭐+', '⭐+'],
+                help="Calificación mínima del fondo"
             )
         
         with filter_row1[3]:
+            selected_return_period = st.selectbox(
+                "📊 **Período**",
+                options=['1 Año', '3 Años', '5 Años', 'YTD'],
+                help="Período para retornos"
+            )
+        
+        with filter_row1[4]:
+            return_options = {
+                '1 Año': ['Todos', '> 20%', '> 10%', '> 5%', '> 0%', '< 0%'],
+                '3 Años': ['Todos', '> 15%', '> 10%', '> 5%', '> 0%', '< 0%'],
+                '5 Años': ['Todos', '> 10%', '> 7%', '> 5%', '> 0%', '< 0%'],
+                'YTD': ['Todos', '> 15%', '> 10%', '> 5%', '> 0%', '< 0%']
+            }
+            selected_return = st.selectbox(
+                f"📈 **Retorno**",
+                options=return_options[selected_return_period],
+                help=f"Filtro de retorno {selected_return_period}"
+            )
+        
+        # Second row of filters
+        filter_row2 = st.columns(4)
+        
+        with filter_row2[0]:
             return_options = {
                 '1 Año': ['Todos', '> 20% 🚀', '> 15%', '> 10%', '> 5%', '> 0%', '0% a -5%', '< -5% ⚠️'],
                 '3 Años': ['Todos', '> 15% 🚀', '> 10%', '> 5%', '> 0%', '< 0% ⚠️'],
@@ -675,9 +710,6 @@ def main():
                 options=return_options[selected_return_period],
                 help=f"Filtro de retorno para {selected_return_period}"
             )
-        
-        # Second row of filters
-        filter_row2 = st.columns(4)
         
         with filter_row2[0]:
             selected_expense = st.selectbox(
@@ -743,9 +775,9 @@ def main():
         
         with filter_row4[0]:
             selected_share_class = st.selectbox(
-                "🎯 **Clase Principal**",
-                options=['Todas las Clases', 'Solo Clases Principales', 'Solo Clases Secundarias'],
-                help="Filtra por clase principal del fondo en el mercado"
+                "🎯 **Clase**",
+                options=['Todas', 'Solo Principales', 'Solo Secundarias'],
+                help="Filtra por clase principal del fondo"
             )
         
         with filter_row4[1]:
@@ -753,9 +785,9 @@ def main():
             if 'distributionFundType' in df.columns:
                 dist_types += df['distributionFundType'].dropna().unique().tolist()
             selected_distribution = st.selectbox(
-                "💵 **Tipo de Distribución**",
+                "💵 **Distribución**",
                 options=dist_types,
-                help="Acumulación (reinvierte) vs Distribución (reparte dividendos)"
+                help="Acumulación vs Distribución"
             )
         
         with filter_row4[2]:
@@ -763,17 +795,16 @@ def main():
             if 'dividendDistributionFrequency' in df.columns:
                 freq_options += df['dividendDistributionFrequency'].dropna().unique().tolist()
             selected_frequency = st.selectbox(
-                "📅 **Frecuencia de Dividendos**",
+                "📅 **Dividendos**",
                 options=freq_options,
-                help="Frecuencia de reparto de dividendos"
+                help="Frecuencia de reparto"
             )
         
         with filter_row4[3]:
-            # Add minimum initial investment filter
             selected_min_investment = st.selectbox(
-                "💸 **Inversión Mínima**",
-                options=['Todos', '< 1,000€', '< 10,000€', '< 50,000€', '< 100,000€', '> 100,000€ 💎'],
-                help="Inversión inicial mínima requerida"
+                "💸 **Inv. Mínima**",
+                options=['Todos', '< 1K€', '< 10K€', '< 50K€', '< 100K€', '> 100K€'],
+                help="Inversión inicial requerida"
             )
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -781,18 +812,22 @@ def main():
         # Apply filters
         filtered_df = df.copy()
         
-        # Apply fund type filter
-        if selected_fund_type != 'Todos' and 'fund_type' in filtered_df.columns:
-            filtered_df = filtered_df[filtered_df['fund_type'] == selected_fund_type]
+        # Apply broad category group filter
+        if selected_broad_category != 'Todas' and 'broadCategoryGroup' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['broadCategoryGroup'] == selected_broad_category]
+        
+        # Apply Morningstar category filter
+        if selected_category != 'Todas' and 'morningstarCategory' in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df['morningstarCategory'] == selected_category]
         
         # Apply star rating filter
         if selected_stars != 'Todos' and 'fundStarRating_overall' in filtered_df.columns:
             star_map = {
-                '⭐⭐⭐⭐⭐ Excelente': 5,
-                '⭐⭐⭐⭐ Muy Bueno': 4,
-                '⭐⭐⭐ Bueno': 3,
-                '⭐⭐ Regular': 2,
-                '⭐ Bajo': 1
+                '⭐⭐⭐⭐⭐': 5,
+                '⭐⭐⭐⭐+': 4,
+                '⭐⭐⭐+': 3,
+                '⭐⭐+': 2,
+                '⭐+': 1
             }
             if selected_stars in star_map:
                 filtered_df = filtered_df[
@@ -835,28 +870,27 @@ def main():
         # Apply size filter
         if 'fundSize' in filtered_df.columns and selected_size != 'Todos':
             size_map = {
-                '> 1B€ 🏦': 1e9,
+                '> 1B€': 1e9,
                 '> 500M€': 500e6,
                 '> 100M€': 100e6,
                 '> 50M€': 50e6,
                 '> 10M€': 10e6,
-                '> 5M€': 5e6,
-                '< 5M€ ⚠️': -5e6
+                '< 10M€': -10e6
             }
             if selected_size in size_map:
                 if '<' in selected_size:
-                    filtered_df = filtered_df[filtered_df['fundSize'] < 5e6]
+                    filtered_df = filtered_df[filtered_df['fundSize'] < 10e6]
                 else:
                     filtered_df = filtered_df[filtered_df['fundSize'] > size_map[selected_size]]
         
         # Apply ESG filter
         if 'sustainabilityRating' in filtered_df.columns and selected_esg != 'Todos':
             esg_map = {
-                '🌿🌿🌿🌿🌿 Líder': 5,
-                '🌿🌿🌿🌿 Alto': 4,
-                '🌿🌿🌿 Medio': 3,
-                '🌿🌿 Básico': 2,
-                '🌿 Bajo': 1
+                '5 🌿': 5,
+                '4+ 🌿': 4,
+                '3+ 🌿': 3,
+                '2+ 🌿': 2,
+                '1+ 🌿': 1
             }
             if selected_esg in esg_map:
                 filtered_df = filtered_df[
@@ -874,7 +908,7 @@ def main():
         
         # Apply Sharpe filter
         if 'sharpeRatio_3yMonthly' in filtered_df.columns and selected_sharpe != 'Todos':
-            sharpe_value = selected_sharpe.split()[1] if '>' in selected_sharpe else selected_sharpe.split()[0]
+            sharpe_value = selected_sharpe.split()[1] if '>' in selected_sharpe or '<' in selected_sharpe else selected_sharpe
             if '>' in selected_sharpe:
                 threshold = float(sharpe_value)
                 filtered_df = filtered_df[filtered_df['sharpeRatio_3yMonthly'] > threshold]
@@ -896,7 +930,7 @@ def main():
                 '> 5 años': 5,
                 '> 3 años': 3,
                 '> 1 año': 1,
-                '< 1 año 🆕': -1
+                '< 1 año': -1
             }
             if selected_age in age_map:
                 if '<' in selected_age:
@@ -906,16 +940,16 @@ def main():
         
         # Apply management type filter
         if 'isIndexFund' in filtered_df.columns and selected_index != 'Todos':
-            if selected_index == 'Gestión Pasiva (Indexado)':
+            if selected_index == 'Pasiva (Indexado)':
                 filtered_df = filtered_df[filtered_df['isIndexFund'] == True]
             else:
                 filtered_df = filtered_df[filtered_df['isIndexFund'] == False]
         
         # Apply share class filter
-        if 'isPrimaryShareClassInMarket' in filtered_df.columns and selected_share_class != 'Todas las Clases':
-            if selected_share_class == 'Solo Clases Principales':
+        if 'isPrimaryShareClassInMarket' in filtered_df.columns and selected_share_class != 'Todas':
+            if selected_share_class == 'Solo Principales':
                 filtered_df = filtered_df[filtered_df['isPrimaryShareClassInMarket'] == True]
-            else:  # Solo Clases Secundarias
+            else:  # Solo Secundarias
                 filtered_df = filtered_df[filtered_df['isPrimaryShareClassInMarket'] == False]
         
         # Apply distribution type filter
@@ -928,15 +962,15 @@ def main():
         
         # Apply minimum investment filter
         if 'minimumInitialInvestment' in filtered_df.columns and selected_min_investment != 'Todos':
-            if selected_min_investment == '< 1,000€':
+            if selected_min_investment == '< 1K€':
                 filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 1000]
-            elif selected_min_investment == '< 10,000€':
+            elif selected_min_investment == '< 10K€':
                 filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 10000]
-            elif selected_min_investment == '< 50,000€':
+            elif selected_min_investment == '< 50K€':
                 filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 50000]
-            elif selected_min_investment == '< 100,000€':
+            elif selected_min_investment == '< 100K€':
                 filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] < 100000]
-            elif selected_min_investment == '> 100,000€ 💎':
+            elif selected_min_investment == '> 100K€':
                 filtered_df = filtered_df[filtered_df['minimumInitialInvestment'] >= 100000]
         
         st.markdown("---")
@@ -1458,14 +1492,16 @@ def main():
             
             1. **Configura la Vista**: Elige qué columnas quieres ver
             2. **Aplica Filtros Inteligentes**: 
-               - Categoría de inversión
-               - Calidad del fondo
+               - Categoría de inversión (tipo de activo)
+               - Categoría Morningstar (clasificación específica)
+               - Calidad del fondo (rating estrellas)
                - Rendimientos por período
                - Comisiones y gastos
                - Patrimonio del fondo
                - Sostenibilidad ESG
                - Nivel de riesgo
                - Métricas avanzadas (Sharpe, Alpha)
+               - Clases y distribución
             3. **Ordena Resultados**: Por cualquier métrica
             4. **Exporta**: Descarga en formato CSV
             
@@ -1527,9 +1563,9 @@ def main():
                 44,341 fondos | 96 métricas | Análisis profesional
             </p>
             <p style='color: #8b949e; margin-top: 10px;'>
-                Creado con ❤️ por <a href='https://twitter.com/Gsnchez' target='_blank' 
+                Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' 
                                      style='color: #667eea; text-decoration: none; font-weight: 700;'>
-                    @Gsnchez
+                    @Gnschez
                 </a>
             </p>
         </div>
