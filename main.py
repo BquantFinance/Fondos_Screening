@@ -605,11 +605,10 @@ def main():
         with config_col1:
             selected_preset = st.selectbox(
                 "📋 Vista Preestablecida",
-                options=list(PRESET_CONFIGS.keys()),
+                options=list(PRESET_CONFIGS.keys()) + ['Personalizado'],
                 index=0,  # Default to 'Básico'
-                help="Selecciona qué columnas quieres ver en los resultados"
+                help="Selecciona una vista predefinida o personaliza las columnas"
             )
-            selected_columns = PRESET_CONFIGS[selected_preset]
         
         with config_col2:
             num_results = st.number_input(
@@ -627,6 +626,39 @@ def main():
                 value=True,
                 help="Ver resumen estadístico"
             )
+        
+        # Column selection based on preset or custom
+        if selected_preset == 'Personalizado':
+            # Custom column selector
+            st.markdown("#### 🎨 **Selecciona las columnas que quieres ver**")
+            
+            # Create a list of all available columns with friendly names
+            all_available_cols = {}
+            for category, cols in COLUMN_DEFINITIONS.items():
+                for col_key, col_name in cols.items():
+                    if col_key in df.columns:
+                        all_available_cols[f"{category}: {col_name}"] = col_key
+            
+            # Default to basic columns for custom view
+            default_custom = ['name', 'fund_type', 'totalReturn_1y', 'ongoingCharge', 'fundStarRating_overall']
+            default_display = [k for k, v in all_available_cols.items() if v in default_custom]
+            
+            custom_columns = st.multiselect(
+                "Elige las columnas para mostrar:",
+                options=sorted(list(all_available_cols.keys())),
+                default=default_display,
+                help="Selecciona hasta 20 columnas para mostrar en los resultados"
+            )
+            
+            # Convert friendly names back to column keys
+            selected_columns = [all_available_cols[col] for col in custom_columns]
+            
+            # Always ensure 'name' is included
+            if 'name' not in selected_columns and 'name' in df.columns:
+                selected_columns = ['name'] + selected_columns
+        else:
+            # Use preset columns
+            selected_columns = PRESET_CONFIGS[selected_preset]
         
         st.markdown("---")
         
@@ -1590,9 +1622,9 @@ def main():
                 44,341 fondos | 96 métricas | Análisis profesional
             </p>
             <p style='color: #8b949e; margin-top: 10px;'>
-                Creado con ❤️ por <a href='https://twitter.com/Gnschez' target='_blank' 
+                Creado con ❤️ por <a href='https://twitter.com/Gsnchez' target='_blank' 
                                      style='color: #667eea; text-decoration: none; font-weight: 700;'>
-                    @Gnschez
+                    @Gsnchez
                 </a>
             </p>
         </div>
