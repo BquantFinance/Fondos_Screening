@@ -515,6 +515,8 @@ def create_configurable_heatmap(df, fund_names, metric_type='returns'):
         for val in row:
             if pd.isna(val):
                 text_row.append("N/D")
+            elif isinstance(val, str):
+                text_row.append(val)
             elif metric_config['suffix']:
                 text_row.append(f"{val:.1f}{metric_config['suffix']}")
             else:
